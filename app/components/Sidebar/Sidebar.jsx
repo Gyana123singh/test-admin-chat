@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { logout } from "../../utils/logout";
 
 function Sidebar() {
   const [open, setOpen] = useState(true);
@@ -50,7 +51,7 @@ function Sidebar() {
       image: "/Chart.png",
     },
     { name: "Settings", path: "/setting", image: "/Folder.png" },
-    { name: "Logout", path: "#", image: "/Setting.png" },
+    // { name: "Logout", path: "/logout", image: "/Setting.png" },
   ];
 
   // Handle click and store active menu
@@ -133,6 +134,17 @@ function Sidebar() {
               </li>
             ))}
           </ul>
+          {/* Logout */}
+          <div
+            onClick={logout}
+            className="mt-auto flex cursor-pointer items-center gap-x-4 rounded-md p-2 m-2
+             text-lg font-medium text-red-600 hover:bg-red-50"
+          >
+            <Image src="/Setting.png" width={25} height={25} alt="Logout" />
+            <span className={`${!open && "hidden"} origin-left duration-200`}>
+              Logout
+            </span>
+          </div>
         </div>
       </div>
     </div>

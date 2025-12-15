@@ -23,6 +23,9 @@ import {
   Filler,
 } from "chart.js";
 
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -38,6 +41,21 @@ ChartJS.register(
 export default function Dashboard() {
   /* ---------------- PREMIUM CHART DATA ---------------- */
 
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      router.replace("/login");
+    }
+  }, []);
+
+
+  // for logout functionality
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    window.location.href = "/Login";
+  };
   // Gradient User Growth Line Chart
   const usersChartData = {
     labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],

@@ -16,13 +16,20 @@ export default function CoinManagement() {
     { user: "Ravi", type: "Recharge", coins: "+1200", date: "12/12/2024" },
   ]);
 
+  const userStats = [
+    { user: "Rahul", recharge: 1200, total: 1500, used: 300, remaining: 1200 },
+    { user: "Neha", recharge: 800, total: 900, used: 500, remaining: 400 },
+    { user: "Ravi", recharge: 2000, total: 2500, used: 1200, remaining: 1300 },
+  ];
+
   return (
-    <div className="p-8 w-full bg-[#f8f9fc] overflow-y-auto h-screen  min-h-screen">
+    <div className="p-8 w-full bg-[#f8f9fc] overflow-y-auto h-screen min-h-screen">
       <h1 className="text-3xl font-bold mb-1">Coin Wallet & Recharge</h1>
       <p className="text-gray-500 mb-6">/ Coin Management</p>
 
       {/* GRID */}
-      <div className="grid grid-cols-1 xl:grid-cols-3  gap-8 mb-10">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-10">
+        
         {/* RECHARGE PLANS */}
         <div className="bg-white p-6 shadow-md rounded-2xl">
           <div className="flex justify-between items-center mb-4">
@@ -93,11 +100,7 @@ export default function CoinManagement() {
 
           <div className="flex items-center gap-2 border px-3 py-2 rounded-xl">
             <Search size={18} className="text-gray-500" />
-            <input
-              type="text"
-              placeholder="Search user..."
-              className="outline-none"
-            />
+            <input type="text" placeholder="Search user..." className="outline-none" />
           </div>
         </div>
 
@@ -132,6 +135,39 @@ export default function CoinManagement() {
           </tbody>
         </table>
       </div>
+
+      {/* USER STATISTICS */}
+      <div className="bg-white p-6 shadow-md rounded-2xl mt-10">
+        <h2 className="text-xl font-semibold mb-4">User Statistics</h2>
+
+        <table className="w-full text-left">
+          <thead className="bg-gray-100">
+            <tr>
+              <th className="p-3">User</th>
+              <th className="p-3">Total Recharge (₹)</th>
+              <th className="p-3">Total Coins</th>
+              <th className="p-3">Used Coins</th>
+              <th className="p-3">Remaining Coins</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {userStats.map((u, index) => (
+              <tr key={index} className="border-b hover:bg-gray-50">
+                <td className="p-3 flex items-center gap-2">
+                  <Wallet className="text-purple-600" />
+                  {u.user}
+                </td>
+                <td className="p-3 font-medium">₹{u.recharge}</td>
+                <td className="p-3">{u.total} Coins</td>
+                <td className="p-3 text-red-600 font-semibold">{u.used}</td>
+                <td className="p-3 text-green-600 font-semibold">{u.remaining}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
     </div>
   );
 }

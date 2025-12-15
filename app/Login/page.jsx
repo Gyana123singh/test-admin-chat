@@ -24,6 +24,10 @@ export default function Login() {
     router.push("/dashboard");
   };
 
+  const handleGoogleLogin = () => {
+    window.location.href = "https://chat-app-1-qvl9.onrender.com/auth/google";
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden">
       {/* Purple Background */}
@@ -73,10 +77,22 @@ export default function Login() {
 
         {/* Login Button */}
         <button
-          className="w-full bg-[#6c3eff] text-white py-3 rounded-lg text-lg"
+          className="w-full bg-[#6c3eff] text-white py-3 rounded-lg text-lg cursor-pointer"
           onClick={handleLogin}
         >
           Login
+        </button>
+
+        <button
+          onClick={handleGoogleLogin}
+          className="flex items-center gap-3 px-4 py-2 border rounded-lg shadow hover:bg-gray-100 transition"
+        >
+          <img
+            src="https://developers.google.com/identity/images/g-logo.png"
+            alt="Google"
+            className="w-5 h-5"
+          />
+          <span>Continue with Google</span>
         </button>
       </div>
     </div>
