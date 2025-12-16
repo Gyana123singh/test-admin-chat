@@ -3,30 +3,38 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import axios from "axios";
+import { adminApi } from "../utils/api/authApi";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = () => {
-    // Fake Login Validation
-    if (!email || !password) {
-      alert("Enter email & password");
-      return;
+  const handleLogin = async () => {
+    try {
+      // Fake Login Validation
+      if (!email || !password) {
+        alert("Enter email & password");
+        return;
+      }
+      const data = await adminApi.loginAdmin(email, password);
+      console.log("Login Success:", data);
+      // Store login token
+      localStorage.setItem("adminAuthToken", data.token);
+
+      // Redirect to Dashboard inside (admin) layout
+      // router.push("/dashboard");
+    } catch (error) {
+      console.error("Login Failed:", error.response?.data || error.message);
     }
-
-    // Store login token
-    localStorage.setItem("adminAuth", "true");
-
-    // Redirect to Dashboard inside (admin) layout
-    router.push("/dashboard");
   };
 
-  const handleGoogleLogin = () => {
-    window.location.href = "https://chat-app-1-qvl9.onrender.com/auth/google";
-  };
+  // const handleGoogleLogin = () => {
+  //   window.location.href = "https://chat-app-1-qvl9.onrender.com/auth/google";
+  // };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white relative overflow-hidden">
@@ -84,7 +92,7 @@ export default function Login() {
         </button>
 
         <button
-          onClick={handleGoogleLogin}
+          // onClick={handleGoogleLogin}
           className="flex items-center gap-3 px-4 py-2 border rounded-lg shadow hover:bg-gray-100 transition"
         >
           <img
