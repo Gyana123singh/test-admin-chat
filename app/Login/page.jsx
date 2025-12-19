@@ -113,7 +113,8 @@ export default function Login() {
 
         <button
           onClick={() =>
-            (window.location.href = "http://localhost:5000/auth/google")
+            (window.location.href =
+              "https://chat-app-1-qvl9.onrender.com/auth/google")
           }
           className="w-full flex items-center justify-center gap-3 border py-3 rounded-lg mt-4"
         >
