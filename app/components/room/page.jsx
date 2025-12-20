@@ -3,9 +3,10 @@ import Image from "next/image";
 import {
   HiOutlineBriefcase,
   HiOutlineShare,
-  HiOutlinePower,
+  HiPower,
   HiOutlineUserAdd,
 } from "react-icons/hi";
+
 import {
   HiOutlineMicrophone,
   HiOutlineVolumeUp,
@@ -42,6 +43,7 @@ export default function RoomPage() {
           <HiOutlineBriefcase />
           <HiOutlineShare />
           <HiOutlinePower />
+          <HiPower />
         </div>
       </div>
 
