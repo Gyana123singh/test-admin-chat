@@ -1,16 +1,13 @@
 "use client";
 import Image from "next/image";
-import {
-  HiMenuAlt2,
-  HiGlobeAlt,
-  HiSearch,
-} from "react-icons/hi";
+import { HiMenuAlt2, HiGlobeAlt, HiSearch } from "react-icons/hi";
 import { HiSignal } from "react-icons/hi2";
+import { useRouter } from "next/navigation";
 
+const router = useRouter();
 export default function JoinedPage() {
   return (
     <div className="max-w-[420px] mx-auto min-h-screen bg-white pb-20">
-
       {/* TOP NAV */}
       <header className="flex items-center justify-between px-4 py-3 border-b">
         <HiMenuAlt2 className="text-2xl text-teal-500" />
@@ -45,12 +42,12 @@ export default function JoinedPage() {
             className="rounded-full"
           />
 
-          <div>
+          <button onClick={() => router.push("/create-room")}>
             <h3 className="font-semibold text-base">Create My Room</h3>
             <p className="text-sm text-gray-400">
               Share everything with friends
             </p>
-          </div>
+          </button>
 
           <button className="ml-auto w-10 h-10 rounded-full bg-green-500 text-white text-2xl flex items-center justify-center">
             +
@@ -72,9 +69,7 @@ export default function JoinedPage() {
         />
 
         <div className="flex-1">
-          <h3 className="font-semibold text-sm">
-            Dil Help | दिल समर्थन
-          </h3>
+          <h3 className="font-semibold text-sm">Dil Help | दिल समर्थन</h3>
 
           <div className="flex items-center gap-2 mt-1">
             <span className="bg-yellow-100 text-xs px-2 py-0.5 rounded-lg">
@@ -83,9 +78,7 @@ export default function JoinedPage() {
             <span>🇮🇳</span>
           </div>
 
-          <p className="text-xs text-gray-400 mt-1">
-            Welcome Everyone ❤️
-          </p>
+          <p className="text-xs text-gray-400 mt-1">Welcome Everyone ❤️</p>
         </div>
 
         <div className="flex items-center gap-1 text-sm">

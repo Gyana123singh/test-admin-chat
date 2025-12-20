@@ -51,8 +51,8 @@ function Sidebar() {
       image: "/Chart.png",
     },
     {
-      name: "create room",
-      path: "/createRoom",
+      name: "Join",
+      path: "/join",
       image: "/Chart.png",
     },
     { name: "Settings", path: "/setting", image: "/Folder.png" },
