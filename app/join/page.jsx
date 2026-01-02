@@ -19,7 +19,7 @@ export default function JoinedPage() {
     const fetchRooms = async () => {
       try {
         const res = await axios.get(
-          "https://chat-app-1-qvl9.onrender.com/api/rooms/get-all-rooms"
+          "/api/rooms/get-all-rooms"
         );
 
         console.log("ROOMS →", res.data.rooms);
