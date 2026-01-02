@@ -8,7 +8,7 @@ import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL || "https://chat-app-1-qvl9.onrender.com";
+  process.env.NEXT_PUBLIC_API_URL || "https://chat-app-1-qvl9.onrender.com";
 
 const ICE_SERVERS = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
