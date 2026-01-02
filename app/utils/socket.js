@@ -2,8 +2,7 @@ import { io } from "socket.io-client";
 
 let socket = null;
 
-const SOCKET_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://chat-app-1-qvl9.onrender.com";
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL;
 
 export const getSocket = (token) => {
   // ✅ Prevent SSR execution
