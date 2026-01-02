@@ -1,54 +1,162 @@
 "use client";
 
-import { useState } from "react";
-import { Plus, Wallet, IndianRupee, Coins, Minus, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Plus, IndianRupee, Coins, Minus } from "lucide-react";
+import AddPlanModal from "../components/modal/AddPlanModal";
+import ModalComponent from "../components/modal/ModalComponents";
 
 export default function CoinManagement() {
-  const [plans, setPlans] = useState([
-    { id: 1, inr: 100, coins: 1000, bonus: 50 },
-    { id: 2, inr: 500, coins: 5500, bonus: 300 },
-    { id: 3, inr: 1000, coins: 12000, bonus: 1000 },
-  ]);
+  const [openModal, setOpenModal] = useState(null);
 
-  const [transactions] = useState([
-    { user: "Rahul", type: "Added", coins: "+500", date: "10/12/2024" },
-    { user: "Neha", type: "Deducted", coins: "-200", date: "11/12/2024" },
-    { user: "Ravi", type: "Recharge", coins: "+1200", date: "12/12/2024" },
-  ]);
+  /* ===============================
+     RECHARGE PLANS (FROM BACKEND)
+  =============================== */
+  const [plans, setPlans] = useState([]);
 
-  const userStats = [
-    { user: "Rahul", recharge: 1200, total: 1500, used: 300, remaining: 1200 },
-    { user: "Neha", recharge: 800, total: 900, used: 500, remaining: 400 },
-    { user: "Ravi", recharge: 2000, total: 2500, used: 1200, remaining: 1300 },
-  ];
+  /* ===============================
+     GET RECHARGE PLANS API
+  =============================== */
+  useEffect(() => {
+    const fetchRechargePlans = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:5000/api/get-recharge-plans"
+        );
+
+        if (res.data?.success) {
+          setPlans(res.data.plans);
+        }
+      } catch (error) {
+        console.error("Failed to fetch recharge plans", error);
+      }
+    };
+
+    fetchRechargePlans();
+  }, []);
+
+  /* ===============================
+     INR → COIN MAPPING STATE
+  =============================== */
+  const [coinRate, setCoinRate] = useState("");
+
+  /* ===============================
+     GET COIN MAPPING
+  =============================== */
+  useEffect(() => {
+    const fetchCoinMapping = async () => {
+      try {
+        const res = await axios.get(
+          "http://localhost:5000/api/get-coin-mapping"
+        );
+
+        if (res.data?.rate) {
+          setCoinRate(res.data.rate);
+        }
+      } catch (error) {
+        console.error("Failed to fetch coin mapping", error);
+      }
+    };
+
+    fetchCoinMapping();
+  }, []);
+
+  /* ===============================
+     UPDATE COIN MAPPING
+  =============================== */
+  const updateCoinMapping = async () => {
+    if (!coinRate) return alert("Please enter coin rate");
+
+    try {
+      const res = await axios.post("http://localhost:5000/api/coin-mapping", {
+        rate: Number(coinRate),
+      });
+
+      alert(res.data?.message || "Coin mapping updated");
+    } catch (error) {
+      console.error("Failed to update coin mapping", error);
+    }
+  };
+
+  // Delete plan
+  const handleDeletePlan = async (id) => {
+    if (!confirm("Are you sure you want to delete this plan?")) return;
+
+    try {
+      await axios.delete(
+        `http://localhost:5000/api/delete-recharge-plan/${id}`
+      );
+
+      // Remove from UI instantly
+      setPlans((prev) => prev.filter((p) => p._id !== id));
+    } catch (error) {
+      console.error("Failed to delete plan", error);
+      alert("Failed to delete plan");
+    }
+  };
 
   return (
     <div className="p-8 w-full bg-[#f8f9fc] overflow-y-auto h-screen min-h-screen">
       <h1 className="text-3xl font-bold mb-1">Coin Wallet & Recharge</h1>
       <p className="text-gray-500 mb-6">/ Coin Management</p>
 
-      {/* GRID */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-10">
-        
         {/* RECHARGE PLANS */}
         <div className="bg-white p-6 shadow-md rounded-2xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recharge Plans</h2>
-            <button className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700">
+            <button
+              onClick={() => setOpenModal("addPlan")}
+              className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700"
+            >
               <Plus size={18} /> Add Plan
             </button>
           </div>
 
           <div className="space-y-3">
+            {plans.length === 0 && (
+              <p className="text-gray-400 text-sm">No plans available</p>
+            )}
+
             {plans.map((p) => (
               <div
-                key={p.id}
-                className="p-4 rounded-xl border bg-purple-50 hover:bg-purple-100 duration-150"
+                key={p._id}
+                className="flex justify-between items-center p-4 rounded-xl border bg-purple-50 hover:bg-purple-100 duration-150"
               >
-                <p className="font-semibold">
-                  ₹{p.inr} → <span className="text-purple-700">{p.coins} Coins</span>
-                </p>
-                <p className="text-sm text-green-600">Bonus: {p.bonus} coins</p>
+                {/* LEFT INFO */}
+                <div>
+                  <p className="font-semibold">
+                    ₹{p.amount} →{" "}
+                    <span className="text-purple-700">
+                      {p.totalCoins ?? p.coins + p.bonusCoins} Coins
+                    </span>
+                  </p>
+                  <p className="text-sm text-green-600">
+                    Bonus: {p.bonusCoins} coins
+                  </p>
+                </div>
+
+                {/* RIGHT ACTIONS */}
+                <div className="flex gap-2">
+                  {/* EDIT */}
+                  <button
+                    onClick={() => {
+                      setSelectedPlan(p); // optional
+                      setOpenModal("editPlan");
+                    }}
+                    className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"
+                  >
+                    ✏️
+                  </button>
+
+                  {/* DELETE */}
+                  <button
+                    onClick={() => handleDeletePlan(p._id)}
+                    className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"
+                  >
+                    🗑
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -62,12 +170,17 @@ export default function CoinManagement() {
             <IndianRupee className="text-purple-600" />
             <input
               type="number"
+              value={coinRate}
+              onChange={(e) => setCoinRate(e.target.value)}
               placeholder="1 INR equals how many coins?"
               className="border p-2 rounded-xl w-full"
             />
           </div>
 
-          <button className="w-full bg-purple-600 text-white py-2 rounded-xl">
+          <button
+            onClick={updateCoinMapping}
+            className="w-full bg-purple-600 text-white py-2 rounded-xl"
+          >
             Update Mapping
           </button>
         </div>
@@ -93,81 +206,11 @@ export default function CoinManagement() {
         </div>
       </div>
 
-      {/* TRANSACTIONS */}
-      <div className="bg-white p-6 shadow-md rounded-2xl">
-        <div className="flex justify-between mb-4">
-          <h2 className="text-xl font-semibold">Transactions</h2>
-
-          <div className="flex items-center gap-2 border px-3 py-2 rounded-xl">
-            <Search size={18} className="text-gray-500" />
-            <input type="text" placeholder="Search user..." className="outline-none" />
-          </div>
-        </div>
-
-        <table className="w-full text-left">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-3">User</th>
-              <th className="p-3">Type</th>
-              <th className="p-3">Coins</th>
-              <th className="p-3">Date</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {transactions.map((t, i) => (
-              <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="p-3 flex items-center gap-2">
-                  <Wallet className="text-purple-600" />
-                  {t.user}
-                </td>
-                <td className="p-3">{t.type}</td>
-                <td
-                  className={`p-3 font-semibold ${
-                    t.coins.startsWith("+") ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  {t.coins}
-                </td>
-                <td className="p-3">{t.date}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* USER STATISTICS */}
-      <div className="bg-white p-6 shadow-md rounded-2xl mt-10">
-        <h2 className="text-xl font-semibold mb-4">User Statistics</h2>
-
-        <table className="w-full text-left">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-3">User</th>
-              <th className="p-3">Total Recharge (₹)</th>
-              <th className="p-3">Total Coins</th>
-              <th className="p-3">Used Coins</th>
-              <th className="p-3">Remaining Coins</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {userStats.map((u, index) => (
-              <tr key={index} className="border-b hover:bg-gray-50">
-                <td className="p-3 flex items-center gap-2">
-                  <Wallet className="text-purple-600" />
-                  {u.user}
-                </td>
-                <td className="p-3 font-medium">₹{u.recharge}</td>
-                <td className="p-3">{u.total} Coins</td>
-                <td className="p-3 text-red-600 font-semibold">{u.used}</td>
-                <td className="p-3 text-green-600 font-semibold">{u.remaining}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
+      {openModal === "addPlan" && (
+        <ModalComponent title="" onClose={() => setOpenModal(null)}>
+          <AddPlanModal onClose={() => setOpenModal(null)} />
+        </ModalComponent>
+      )}
     </div>
   );
 }
