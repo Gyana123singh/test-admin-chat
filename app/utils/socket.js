@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 let socket = null;
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_SOCKET_URL || "https://chat-app-1-qvl9.onrender.com";
 
 export const getSocket = (token) => {
   // ✅ Prevent SSR execution

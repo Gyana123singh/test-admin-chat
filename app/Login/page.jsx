@@ -46,7 +46,7 @@ export default function Login() {
       }
 
       const res = await axios.post(
-        "http://localhost:5000/admin/login",
+        "https://chat-app-1-qvl9.onrender.com/admin/login",
         { email, password }
       );
 
