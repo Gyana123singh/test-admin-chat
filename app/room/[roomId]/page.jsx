@@ -6,7 +6,7 @@ import Image from "next/image";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
-
+import AddFriend from "@/app/components/AddFriend";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
@@ -17,26 +17,6 @@ const ICE_SERVERS = {
 
 export default function RoomPage() {
   const { roomId } = useParams();
-
-  const handleSendRequest = async () => {
-    try {
-      await axios.post(
-        "http://localhost:5000/api/friends/request",
-        { to: toUserId },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-            "Content-Type": "application/json",
-          },
-          withCredentials: true, // remove if not using cookies
-        }
-      );
-
-      alert("Friend request sent ✅");
-    } catch (err) {
-      alert(err?.response?.data?.message || "Error");
-    }
-  };
 
   // ✅ EXISTING STATES (DO NOT CHANGE)
   const [room, setRoom] = useState(null);
@@ -586,6 +566,8 @@ export default function RoomPage() {
         </div>
       )}
 
+      <AddFriend />
+
       {/* HEADER */}
       <div className="p-4 flex gap-3 items-center justify-between border-b border-gray-700">
         <div>
@@ -611,14 +593,6 @@ export default function RoomPage() {
           }`}
         >
           {joined ? "✓ Joined" : "Join"}
-        </button>
-
-        {/* for add friends  */}
-        <button
-          onClick={handleSendRequest}
-          className="px-4 py-2 bg-blue-600 text-white rounded"
-        >
-          Add Friend
         </button>
       </div>
 
