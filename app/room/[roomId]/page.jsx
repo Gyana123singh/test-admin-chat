@@ -6,9 +6,10 @@ import Image from "next/image";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
+import getSocket from "../../utils/socket";
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_API_URL || "https://chat-app-1-qvl9.onrender.com";
+  process.env.NEXT_PUBLIC_SOCKET_URL || "https://chat-app-1-qvl9.onrender.com";
 
 const ICE_SERVERS = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -16,6 +17,26 @@ const ICE_SERVERS = {
 
 export default function RoomPage() {
   const { roomId } = useParams();
+
+  const handleSendRequest = async () => {
+    try {
+      await axios.post(
+        "https://chat-app-1-qvl9.onrender.com/api/friends/request",
+        { to: toUserId },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+            "Content-Type": "application/json",
+          },
+          withCredentials: true, // remove if not using cookies
+        }
+      );
+
+      alert("Friend request sent ✅");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Error");
+    }
+  };
 
   // ✅ EXISTING STATES (DO NOT CHANGE)
   const [room, setRoom] = useState(null);
@@ -475,12 +496,15 @@ export default function RoomPage() {
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
     });
 
-    socket.on("message:typing", ({ userId, username, isTyping, typingUsers }) => {
-      console.log("⌨️ Typing event:", { userId, username, isTyping });
-      if (userId !== currentUser.id) {
-        setTypingUsers(typingUsers.filter((uid) => uid !== currentUser.id));
+    socket.on(
+      "message:typing",
+      ({ userId, username, isTyping, typingUsers }) => {
+        console.log("⌨️ Typing event:", { userId, username, isTyping });
+        if (userId !== currentUser.id) {
+          setTypingUsers(typingUsers.filter((uid) => uid !== currentUser.id));
+        }
       }
-    });
+    );
 
     console.log("✅ All listeners registered");
 
@@ -602,6 +626,14 @@ export default function RoomPage() {
           ))}
         </div>
       )}
+
+      {/* for add friends  */}
+      <button
+        onClick={handleSendRequest}
+        className="px-4 py-2 bg-blue-600 text-white rounded"
+      >
+        Add Friend
+      </button>
 
       {/* ✅ MESSAGES SECTION */}
       {joined && (
