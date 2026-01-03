@@ -46,7 +46,7 @@ export default function Login() {
       }
 
       const res = await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/admin/login",
+        "http://localhost:5000/admin/login",
         { email, password }
       );
 
@@ -109,7 +109,7 @@ export default function Login() {
       const idToken = await result.user.getIdToken();
 
       const res = await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/api/auth/otp/firebase-otp-login",
+        "http://localhost:5000/api/auth/otp/firebase-otp-login",
         { idToken }
       );
 
@@ -225,7 +225,7 @@ export default function Login() {
         <button
           onClick={() =>
             (window.location.href =
-              "https://chat-app-1-qvl9.onrender.com/auth/google")
+              "http://localhost:5000/auth/google")
           }
           className="w-full flex items-center justify-center gap-3 border py-3 rounded-lg mt-4"
         >

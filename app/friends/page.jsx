@@ -7,7 +7,7 @@ export default function FriendsPage() {
   const [friends, setFriends] = useState([]);
   const [token, setToken] = useState(null);
 
-  const BASE_URL = "https://chat-app-1-qvl9.onrender.com";
+  const BASE_URL = "http://localhost:5000";
 
   // ✅ Read token safely
   useEffect(() => {
