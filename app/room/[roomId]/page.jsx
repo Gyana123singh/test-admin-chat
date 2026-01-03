@@ -612,6 +612,14 @@ export default function RoomPage() {
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
+
+        {/* for add friends  */}
+        <button
+          onClick={handleSendRequest}
+          className="px-4 py-2 bg-blue-600 text-white rounded"
+        >
+          Add Friend
+        </button>
       </div>
 
       {joined && (
@@ -626,14 +634,6 @@ export default function RoomPage() {
           ))}
         </div>
       )}
-
-      {/* for add friends  */}
-      <button
-        onClick={handleSendRequest}
-        className="px-4 py-2 bg-blue-600 text-white rounded"
-      >
-        Add Friend
-      </button>
 
       {/* ✅ MESSAGES SECTION */}
       {joined && (
