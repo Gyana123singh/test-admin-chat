@@ -5,11 +5,21 @@ import axios from "axios";
 
 export default function FriendsPage() {
   const [friends, setFriends] = useState([]);
+  const [token, setToken] = useState(null);
 
   const BASE_URL = "https://chat-app-1-qvl9.onrender.com";
-  const token = localStorage.getItem("authToken");
 
+  // ✅ Read token safely
   useEffect(() => {
+    if (typeof window !== "undefined") {
+      setToken(localStorage.getItem("authToken"));
+    }
+  }, []);
+
+  // ✅ Fetch friends only when token exists
+  useEffect(() => {
+    if (!token) return;
+
     axios
       .get(`${BASE_URL}/api/friends/list`, {
         headers: {
@@ -17,20 +27,15 @@ export default function FriendsPage() {
         },
         withCredentials: true,
       })
-      .then((res) => {
-        setFriends(res.data);
-      })
-      .catch(() => {
-        alert("Failed to load friends");
-      });
-  }, []);
+      .then((res) => setFriends(res.data))
+      .catch(() => alert("Failed to load friends"));
+  }, [token]);
 
   return (
     <div className="p-6">
       <h1 className="text-xl font-bold mb-4">My Friends</h1>
 
       {friends.map((f) => {
-        // assuming backend already returns populated users
         const friend = f.from || f.to;
 
         return (

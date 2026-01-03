@@ -1,30 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { getSocket } from "../../utils/socket";
 
 export default function FriendRequestsPage() {
   const [requests, setRequests] = useState([]);
+  const [token, setToken] = useState(null);
 
   const BASE_URL = "https://chat-app-1-qvl9.onrender.com";
-  const token = localStorage.getItem("authToken");
 
-  const fetchRequests = async () => {
-    const res = await axios.get(
-      `${BASE_URL}/api/friends/requests`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        withCredentials: true,
-      }
-    );
+  // ✅ Read token safely
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setToken(localStorage.getItem("authToken"));
+    }
+  }, []);
+
+  const fetchRequests = async (authToken) => {
+    const res = await axios.get(`${BASE_URL}/api/friends/requests`, {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+      withCredentials: true,
+    });
     setRequests(res.data);
   };
 
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    if (token) fetchRequests(token);
+  }, [token]);
 
   const acceptRequest = async (requestId, fromUserId) => {
     await axios.post(
@@ -38,12 +43,12 @@ export default function FriendRequestsPage() {
       }
     );
 
-    // socket notification
-    getSocket().emit("friend:request:accept", {
+    const socket = getSocket(token);
+    socket?.emit("friend:request:accept", {
       toUserId: fromUserId,
     });
 
-    fetchRequests();
+    fetchRequests(token);
   };
 
   const rejectRequest = async (requestId) => {
@@ -58,7 +63,7 @@ export default function FriendRequestsPage() {
       }
     );
 
-    fetchRequests();
+    fetchRequests(token);
   };
 
   return (
