@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import api from "@/lib/api";
 import { getSocket } from "../../utils/socket";
 
 export default function FriendRequestsPage() {

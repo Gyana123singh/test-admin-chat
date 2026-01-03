@@ -6,7 +6,7 @@ import Image from "next/image";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
-import getSocket from "../../utils/socket";
+
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "https://chat-app-1-qvl9.onrender.com";
