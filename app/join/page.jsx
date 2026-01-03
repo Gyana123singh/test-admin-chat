@@ -147,7 +147,7 @@ export default function JoinedPage() {
       <footer className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[420px] bg-white border-t py-3">
         <div className="flex justify-around text-xl text-gray-400">
           <span className="text-green-500">🏠</span>
-          <span>🤍</span>
+          <span>🤍love</span>
           <span>💬</span>
           <span>👤</span>
         </div>
