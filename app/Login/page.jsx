@@ -53,8 +53,9 @@ export default function Login() {
       const data = res.data;
 
       localStorage.setItem("authToken", data.token);
+      localStorage.setItem("userId", data.userId);
       localStorage.setItem(
-        "user",
+        "userData",
         JSON.stringify({
           id: data.user._id,
           username: data.user.username,

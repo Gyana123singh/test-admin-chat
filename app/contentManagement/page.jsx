@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AddBannerModal from "../contentManagement/AddBannerModal";
 import {
   Image,
   Tag,
@@ -12,6 +13,8 @@ import {
 } from "lucide-react";
 
 export default function CMSPage() {
+  const [open, setOpen] = useState(false);
+
   const [banners] = useState([]);
   const [offers] = useState([]);
   const [ads] = useState([]);
@@ -19,41 +22,9 @@ export default function CMSPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <h1 className="text-2xl font-bold mb-6">📰 CMS (Content Management System)</h1>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ---------------------- BANNERS ---------------------- */}
-        <CMSCard
-          title="Banners"
-          icon={<Image className="w-5 h-5 text-blue-600" />}
-          btnText="Add Banner"
-          items={banners}
-        />
-
-        {/* ---------------------- OFFERS ---------------------- */}
-        <CMSCard
-          title="Offers"
-          icon={<Tag className="w-5 h-5 text-green-600" />}
-          btnText="Add Offer"
-          items={offers}
-        />
-
-        {/* ---------------------- ADS ---------------------- */}
-        <CMSCard
-          title="Ads"
-          icon={<MonitorPlay className="w-5 h-5 text-purple-600" />}
-          btnText="Add Ad"
-          items={ads}
-        />
-
-        {/* ---------------------- POPUPS ---------------------- */}
-        <CMSCard
-          title="Popups"
-          icon={<Megaphone className="w-5 h-5 text-red-600" />}
-          btnText="Add Popup"
-          items={popups}
-        />
-      </div>
+      <h1 className="text-2xl font-bold mb-6">
+        📰 CMS (Content Management System)
+      </h1>
     </div>
   );
 }
@@ -78,7 +49,9 @@ function CMSCard({ title, icon, btnText, items }) {
 
       {/* Empty State */}
       {items.length === 0 ? (
-        <p className="text-center text-gray-500 py-6">No {title.toLowerCase()} added yet.</p>
+        <p className="text-center text-gray-500 py-6">
+          No {title.toLowerCase()} added yet.
+        </p>
       ) : (
         <div className="space-y-4">
           {items.map((item, index) => (
@@ -95,7 +68,10 @@ function CMSCard({ title, icon, btnText, items }) {
               </div>
 
               <div className="flex gap-3">
-                <button className="p-2 rounded-lg bg-blue-100">
+                <button
+                  className="p-2 rounded-lg bg-blue-100"
+                  onClick={() => setOpen(true)}
+                >
                   <Edit className="w-4 text-blue-600" />
                 </button>
 
@@ -107,6 +83,12 @@ function CMSCard({ title, icon, btnText, items }) {
           ))}
         </div>
       )}
+
+      <AddBannerModal
+        isOpen={open}
+        onClose={() => setOpen(false)}
+        onSave={handleSave}
+      />
     </div>
   );
 }

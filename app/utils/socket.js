@@ -20,25 +20,23 @@
 //   return socket;
 // };
 
-import { io } from "socket.io-client";
+import io from "socket.io-client";
 
 let socket = null;
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
-
 export const getSocket = (token) => {
-  if (typeof window === "undefined") return null;
+  if (!socket && token) {
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
 
-  if (!socket) {
-    socket = io(SOCKET_URL, {
-      transports: ["websocket"],
-      autoConnect: true,
-      withCredentials: true,
+    socket = io(socketUrl, {
+      auth: {
+        token,
+      },
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       reconnectionAttempts: 5,
-      auth: token ? { token } : undefined,
+      autoConnect: true,
     });
 
     socket.on("connect", () => {
@@ -64,8 +62,9 @@ export const disconnectSocket = () => {
   }
 };
 
-export const reconnectSocket = (token) => {
-  disconnectSocket();
-  return getSocket(token);
+export const emitEvent = (eventName, data) => {
+  if (socket && socket.connected) {
+    socket.emit(eventName, data);
+  }
 };
 

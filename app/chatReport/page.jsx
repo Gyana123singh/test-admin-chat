@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   MessageSquareWarning,
   PhoneCall,
-  Gift,
+  // Gift,
   ShieldBan,
   Trash2,
   Search,
@@ -40,15 +40,15 @@ export default function ChartReport() {
     },
   ];
 
-  const giftReports = [
-    {
-      id: 4,
-      user: "Sanjay",
-      reportedBy: "Tina",
-      reason: "Gift spam",
-      time: "Yesterday",
-    },
-  ];
+  // const giftReports = [
+  //   {
+  //     id: 4,
+  //     user: "Sanjay",
+  //     reportedBy: "Tina",
+  //     reason: "Gift spam",
+  //     time: "Yesterday",
+  //   },
+  // ];
 
   const ReportCard = ({ icon, title, count }) => (
     <div className="bg-white shadow-md rounded-2xl p-5 flex items-center gap-4 hover:shadow-lg duration-200">
@@ -88,7 +88,6 @@ export default function ChartReport() {
               <td className="p-3">{r.reason}</td>
               <td className="p-3">{r.time}</td>
               <td className="p-3 text-center flex items-center justify-center gap-4">
-
                 {/* Block User */}
                 <button className="p-2 bg-red-100 text-red-600 rounded-xl hover:bg-red-200">
                   <ShieldBan size={18} />
@@ -98,7 +97,6 @@ export default function ChartReport() {
                 <button className="p-2 bg-gray-100 text-gray-600 rounded-xl hover:bg-gray-200">
                   <Trash2 size={18} />
                 </button>
-
               </td>
             </tr>
           ))}
@@ -126,11 +124,11 @@ export default function ChartReport() {
           count={callReports.length}
         />
 
-        <ReportCard
+        {/* <ReportCard
           title="Gift Abuse Reports"
           icon={<Gift size={28} />}
           count={giftReports.length}
-        />
+        /> */}
       </div>
 
       {/* Search Bar */}
@@ -161,11 +159,11 @@ export default function ChartReport() {
           reports={callReports}
         />
 
-        <ReportTable
+        {/* <ReportTable
           title="Gift Abuse Reports"
           icon={<Gift className="text-purple-600" />}
           reports={giftReports}
-        />
+        /> */}
       </div>
     </div>
   );
