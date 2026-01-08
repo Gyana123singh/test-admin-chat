@@ -160,7 +160,7 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
             />
             <span
-              className="absolute right-3 top-3 cursor-pointer"
+              className="absolute right-4 top-3 cursor-pointer"
               onClick={() => setShowPassword(!showPassword)}
             >
               {showPassword ? "🙈" : "👁️"}
