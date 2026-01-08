@@ -24,7 +24,7 @@ export default function GiftsPage() {
       try {
         setLoading(true);
         const res = await axios.get(
-          "https://chat-app-1-qvl9.onrender.com/api/category/getAllGift"
+          "https://chat-app-1-qvl9.onrender.com/api/gift/getAllGift"
         );
 
         console.log("data", res.data);
