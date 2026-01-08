@@ -39,7 +39,7 @@ export default function AddGiftModal({ close, addGift }) {
     const fetchCategories = async () => {
       try {
         const res = await axios.get(
-          "http://localhost:5000/api/category/getCategory"
+          "https://chat-app-1-qvl9.onrender.com/api/category/getCategory"
         );
         setCategories(res.data.categories || []);
       } catch (err) {
@@ -79,7 +79,7 @@ export default function AddGiftModal({ close, addGift }) {
       formData.append("image", imageFile);
 
       const res = await axios.post(
-        "http://localhost:5000/api/category/addGift",
+        "https://chat-app-1-qvl9.onrender.com/api/category/addGift",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

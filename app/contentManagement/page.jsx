@@ -1,94 +1,60 @@
-"use client";
+import { ImageIcon, Tag, Megaphone, Monitor } from "lucide-react";
 
-import { useState } from "react";
-import AddBannerModal from "../contentManagement/AddBannerModal";
-import {
-  Image,
-  Tag,
-  MonitorPlay,
-  Megaphone,
-  Plus,
-  Edit,
-  Trash,
-} from "lucide-react";
-
-export default function CMSPage() {
-  const [open, setOpen] = useState(false);
-
-  const [banners] = useState([]);
-  const [offers] = useState([]);
-  const [ads] = useState([]);
-  const [popups] = useState([]);
-
+const Card = ({ icon: Icon, title, emptyText, btnText }) => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-      <h1 className="text-2xl font-bold mb-6">
-        📰 CMS (Content Management System)
-      </h1>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* ------------------------ REUSABLE CMS CARD ------------------------ */
-/* ------------------------------------------------------------------ */
-
-function CMSCard({ title, icon, btnText, items }) {
-  return (
-    <div className="bg-white/70 backdrop-blur-xl shadow-lg rounded-2xl p-6 border border-gray-200 relative">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          {icon}
-          <h2 className="text-lg font-semibold">{title}</h2>
-        </div>
-
-        <button className="bg-black text-white px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-900">
-          <Plus className="w-4" /> {btnText}
-        </button>
+    <div className="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-between min-h-[180px]">
+      <div className="flex items-center gap-2 font-semibold text-lg">
+        <Icon className="w-5 h-5" />
+        {title}
       </div>
 
-      {/* Empty State */}
-      {items.length === 0 ? (
-        <p className="text-center text-gray-500 py-6">
-          No {title.toLowerCase()} added yet.
-        </p>
-      ) : (
-        <div className="space-y-4">
-          {items.map((item, index) => (
-            <div
-              key={index}
-              className="p-3 bg-gray-50 border rounded-xl flex justify-between items-center"
-            >
-              <div className="flex items-center gap-4">
-                <img
-                  src={item.image}
-                  className="w-20 h-14 object-cover rounded-md border"
-                />
-                <p className="font-medium">{item.title}</p>
-              </div>
+      <p className="text-gray-500 text-center mt-6">{emptyText}</p>
 
-              <div className="flex gap-3">
-                <button
-                  className="p-2 rounded-lg bg-blue-100"
-                  onClick={() => setOpen(true)}
-                >
-                  <Edit className="w-4 text-blue-600" />
-                </button>
+      <div className="flex justify-end mt-6">
+        <button className="bg-black text-white px-4 py-2 rounded-lg text-sm hover:opacity-90">
+          + {btnText}
+        </button>
+      </div>
+    </div>
+  );
+};
 
-                <button className="p-2 rounded-lg bg-red-100">
-                  <Trash className="w-4 text-red-600" />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+export default function CMSPage() {
+  return (
+    <div className="p-8 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl font-bold mb-6">
+        📄 CMS (Content Management System)
+      </h1>
 
-      <AddBannerModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onSave={handleSave}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card
+          icon={ImageIcon}
+          title="Banners"
+          emptyText="No banners added yet."
+          btnText="Add Banner"
+        />
+
+        <Card
+          icon={Tag}
+          title="Offers"
+          emptyText="No offers added yet."
+          btnText="Add Offer"
+        />
+
+        <Card
+          icon={Monitor}
+          title="Ads"
+          emptyText="No ads added yet."
+          btnText="Add Ad"
+        />
+
+        <Card
+          icon={Megaphone}
+          title="Popups"
+          emptyText="No popups added yet."
+          btnText="Add Popup"
+        />
+      </div>
     </div>
   );
 }

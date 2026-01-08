@@ -23,7 +23,7 @@ export default function CreateRoomPage() {
       }
 
       const res = await axios.post(
-        "http://localhost:5000/api/rooms/create",
+        "https://chat-app-1-qvl9.onrender.com/api/rooms/create",
         { mode: activeTab },
         {
           headers: {

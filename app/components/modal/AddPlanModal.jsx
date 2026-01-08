@@ -3,7 +3,7 @@
 import { useState } from "react";
 import axios from "axios";
 
-const API_BASE = "http://localhost:5000/api";
+const API_BASE = "https://chat-app-1-qvl9.onrender.com/api";
 
 export default function AddPlanModal({ onClose }) {
   const [amount, setAmount] = useState("");
