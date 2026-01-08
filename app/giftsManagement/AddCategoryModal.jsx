@@ -20,7 +20,7 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
       setLoading(true);
 
       const res = await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/api/category/addCategory",
+        "https://chat-app-1-qvl9.onrender.com/api/gift/addCategory",
         { name: name.trim() },
         { withCredentials: true }
       );
