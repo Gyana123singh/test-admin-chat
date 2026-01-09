@@ -17,13 +17,9 @@ export default function GiftsPage() {
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  /* ===============================
-     FETCH ALL GIFTS
-  =============================== */
   const fetchGifts = async () => {
     try {
       setLoading(true);
-
       const res = await axios.get(
         "https://chat-app-1-qvl9.onrender.com/api/gift/getAllGift"
       );
@@ -45,13 +41,8 @@ export default function GiftsPage() {
     fetchGifts();
   }, []);
 
-  /* ===============================
-     DELETE GIFT (UI ONLY)
-  =============================== */
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this gift?")) return;
-
-    // UI only (backend delete later)
     setGifts((prev) => prev.filter((g) => g._id !== id));
   };
 
@@ -64,24 +55,22 @@ export default function GiftsPage() {
         <div className="flex gap-3">
           <button
             onClick={() => setOpenAddCategory(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700 transition"
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <Plus size={18} /> Add Category
           </button>
 
           <button
             onClick={() => setOpenAdd(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700 transition"
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <Plus size={18} /> Add Gift
           </button>
         </div>
       </div>
 
-      {/* LOADING */}
       {loading && <p className="text-gray-500">Loading gifts...</p>}
 
-      {/* GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5">
         {!loading && gifts.length === 0 && (
           <p className="text-gray-500">No gifts added yet.</p>
@@ -90,45 +79,41 @@ export default function GiftsPage() {
         {gifts.map((gift) => (
           <div
             key={gift._id}
-            className="bg-white rounded-xl shadow p-3 border hover:shadow-lg transition"
+            className="bg-white rounded-xl shadow p-3 border"
           >
-            {/* IMAGE */}
             <img
               src={gift.giftImage}
               alt={gift.name}
               className="w-full h-28 object-contain rounded mb-2"
             />
 
-            {/* NAME */}
             <h3 className="text-sm font-semibold truncate">
               {gift.name}
             </h3>
 
-            {/* CATEGORY */}
+            {/* ✅ FIXED CATEGORY */}
             <p className="text-xs text-gray-600">
-              {gift.category}
+              {gift.category?.name || "Uncategorized"}
             </p>
 
-            {/* PRICE */}
             <p className="text-xs font-semibold text-purple-600">
               {gift.price} coins
             </p>
 
-            {/* ACTIONS */}
             <div className="flex justify-between mt-3">
               <button
                 onClick={() => {
                   setSelectedGift(gift);
                   setOpenEdit(true);
                 }}
-                className="text-blue-500 hover:text-blue-700"
+                className="text-blue-500"
               >
                 <Edit size={18} />
               </button>
 
               <button
                 onClick={() => handleDelete(gift._id)}
-                className="text-red-500 hover:text-red-700"
+                className="text-red-500"
               >
                 <Trash size={18} />
               </button>
@@ -137,14 +122,10 @@ export default function GiftsPage() {
         ))}
       </div>
 
-      {/* MODALS */}
       {openAdd && (
         <AddGiftModal
           close={() => setOpenAdd(false)}
-          onSuccess={() => {
-            setOpenAdd(false);
-            fetchGifts(); // 🔥 re-fetch after add
-          }}
+          onSuccess={fetchGifts}
         />
       )}
 
@@ -156,10 +137,7 @@ export default function GiftsPage() {
         <EditGiftModal
           gift={selectedGift}
           close={() => setOpenEdit(false)}
-          onSuccess={() => {
-            setOpenEdit(false);
-            fetchGifts(); // 🔥 re-fetch after edit
-          }}
+          onSuccess={fetchGifts}
         />
       )}
     </div>
