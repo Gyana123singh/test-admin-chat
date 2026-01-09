@@ -5,6 +5,7 @@ import api from "../api/api";
 import loadRazorpay from "../api/loadRazorpay";
 import CoinPackageCard from "../components/CoinPackageCard";
 import BalanceBar from "../components/BalanceBar";
+import "../styles/recharge.css";
 
 export default function RechargePage() {
   const [packages, setPackages] = useState([]);
