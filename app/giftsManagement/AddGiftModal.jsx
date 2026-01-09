@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 
-export default function AddGiftModal({ close, addGift }) {
+export default function AddGiftModal({ close, onSuccess }) {
   const [preview, setPreview] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -74,22 +74,22 @@ export default function AddGiftModal({ close, addGift }) {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
+      formData.append("image", imageFile); // backend expects req.file
 
-      // 🔥 IMPORTANT (backend expects req.file)
-      formData.append("image", imageFile);
-
-      const res = await axios.post(
+      await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/gift/addGift",
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );
 
-      addGift(res.data.gift);
+      // ✅ SUCCESS CALLBACK
+      onSuccess?.();
 
-      // RESET
+      // RESET FORM
       setForm({ name: "", price: "", category: "" });
       setImageFile(null);
       setPreview("");
+
       close();
     } catch (error) {
       console.error("Gift add failed:", error);
@@ -110,7 +110,9 @@ export default function AddGiftModal({ close, addGift }) {
           <input
             className="border p-2 rounded w-full mb-3"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, name: e.target.value })
+            }
             required
           />
 
@@ -120,7 +122,9 @@ export default function AddGiftModal({ close, addGift }) {
             type="number"
             className="border p-2 rounded w-full mb-3"
             value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, price: e.target.value })
+            }
             required
           />
 
@@ -187,7 +191,10 @@ export default function AddGiftModal({ close, addGift }) {
           </button>
         </form>
 
-        <button onClick={close} className="text-red-500 mt-3 w-full">
+        <button
+          onClick={close}
+          className="text-red-500 mt-3 w-full"
+        >
           Cancel
         </button>
       </div>
