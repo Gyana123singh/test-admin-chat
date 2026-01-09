@@ -9,3 +9,42 @@
 .text-custom-blue {
   color: #3fa1fc;
 }
+
+.container {
+  background: #111;
+  min-height: 100vh;
+  padding: 20px;
+  color: #fff;
+}
+
+.package {
+  border: 2px solid #f5c542;
+  border-radius: 12px;
+  padding: 15px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.package button {
+  background: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.bonus {
+  background: #f5c542;
+  color: #000;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.balance {
+  margin-bottom: 20px;
+  font-size: 18px;
+}
