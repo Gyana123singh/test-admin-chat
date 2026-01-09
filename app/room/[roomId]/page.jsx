@@ -7,6 +7,7 @@ import axios from "axios";
 import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
 import AddFriend from "@/app/components/AddFriend";
+import RechargePage from "@/app/recharge/page";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "https://chat-app-1-qvl9.onrender.com";
@@ -363,6 +364,7 @@ export default function RoomPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("✅ HTTP join successful");
+      <RechargePage />;
 
       if (!socketRef.current) {
         socketRef.current = io(SOCKET_URL, {
