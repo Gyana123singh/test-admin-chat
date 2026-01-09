@@ -5,7 +5,7 @@ import api from "../api/api";
 import loadRazorpay from "../api/loadRazorpay";
 import CoinPackageCard from "../components/CoinPackageCard";
 import BalanceBar from "../components/BalanceBar";
-import "./global.css";
+
 export default function RechargePage() {
   const [packages, setPackages] = useState([]);
   const [balance, setBalance] = useState(0);
@@ -21,7 +21,7 @@ export default function RechargePage() {
   };
 
   const fetchBalance = async () => {
-    const res = await api.get("/payment/balance");
+    const res = await api.get("/balance");
     setBalance(res.data.coinBalance);
   };
 
@@ -30,7 +30,7 @@ export default function RechargePage() {
     if (!loaded) return alert("Razorpay SDK failed");
 
     // 1️⃣ Create order
-    const orderRes = await api.post("/payment/create-order", {
+    const orderRes = await api.post("/create-order", {
       packageId: pkg._id,
     });
 
@@ -47,7 +47,7 @@ export default function RechargePage() {
 
       handler: async function (response) {
         // 3️⃣ Verify payment
-        const verifyRes = await api.post("/payment/verify-payment", {
+        const verifyRes = await api.post("/verify-payment", {
           razorpayOrderId: response.razorpay_order_id,
           razorpayPaymentId: response.razorpay_payment_id,
           razorpaySignature: response.razorpay_signature,
