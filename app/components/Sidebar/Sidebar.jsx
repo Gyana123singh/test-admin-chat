@@ -38,6 +38,11 @@ function Sidebar() {
     { name: "Dashboard", path: "/dashboard", image: "/User.png" },
     { name: "User Management", path: "/userManagement", image: "/User.png" },
     { name: "Gifts Management", path: "/giftsManagement", image: "/User.png" },
+    {
+      name: "Gifts Store Management",
+      path: "/giftStoreManagement",
+      image: "/User.png",
+    },
     { name: "Chat Reports", path: "/chatReport", image: "/Calendar.png" },
     { name: "Coin Management", path: "/coinManagement", image: "/Chart.png" },
     {
