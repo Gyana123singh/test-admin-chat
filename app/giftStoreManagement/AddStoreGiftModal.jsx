@@ -6,7 +6,7 @@ import axios from "axios";
 export default function AddGiftModal({ close, onSuccess }) {
   const [preview, setPreview] = useState("");
   const [imageFile, setImageFile] = useState(null);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState([]); // ✅ always array
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -32,7 +32,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, []);
 
   /* ===============================
-     FETCH CATEGORIES (FIXED)
+     FETCH CATEGORIES (SAFE)
   =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
@@ -40,11 +40,17 @@ export default function AddGiftModal({ close, onSuccess }) {
         const res = await axios.get(
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/categories"
         );
-        setCategories(res.data.data); // ✅ FIXED
+
+        // ✅ ALWAYS SET ARRAY
+        setCategories(
+          Array.isArray(res?.data?.data) ? res.data.data : []
+        );
       } catch (err) {
         console.error("Category fetch failed", err);
+        setCategories([]); // ✅ never undefined
       }
     };
+
     fetchCategories();
   }, []);
 
@@ -56,7 +62,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, [preview]);
 
   /* ===============================
-     SUBMIT GIFT (FIXED)
+     SUBMIT GIFT
   =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -73,7 +79,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
-      formData.append("icon", imageFile); // ✅ MUST MATCH multer.single("icon")
+      formData.append("icon", imageFile); // ✅ MUST match multer.single("icon")
 
       await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
@@ -138,11 +144,14 @@ export default function AddGiftModal({ close, onSuccess }) {
               className="border p-2 rounded cursor-pointer bg-white"
               onClick={() => setIsOpen(!isOpen)}
             >
-              {categories.find((c) => c._id === form.category)?.name ||
-                "Select Category"}
+              {categories.length > 0
+                ? categories.find(
+                    (c) => c._id === form.category
+                  )?.name || "Select Category"
+                : "Loading categories..."}
             </div>
 
-            {isOpen && (
+            {isOpen && categories.length > 0 && (
               <div className="absolute z-50 bg-white border rounded mt-1 max-h-40 overflow-y-auto w-full shadow-md">
                 {categories.map((cat) => (
                   <div
