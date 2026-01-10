@@ -9,7 +9,6 @@ export default function AddGiftModal({ close, onSuccess }) {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-
   const dropdownRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -33,15 +32,15 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, []);
 
   /* ===============================
-     FETCH CATEGORIES
+     FETCH CATEGORIES (FIXED)
   =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await axios.get(
-          "https://chat-app-1-qvl9.onrender.com/api/gift/getCategory"
+          "https://chat-app-1-qvl9.onrender.com/api/store-gifts/categories"
         );
-        setCategories(res.data.categories || []);
+        setCategories(res.data.data); // ✅ FIXED
       } catch (err) {
         console.error("Category fetch failed", err);
       }
@@ -57,7 +56,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, [preview]);
 
   /* ===============================
-     SUBMIT GIFT
+     SUBMIT GIFT (FIXED)
   =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,26 +73,30 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
-      formData.append("image", imageFile); // backend expects req.file
+      formData.append("icon", imageFile); // ✅ MUST MATCH multer.single("icon")
 
       await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/api/gift/addGift",
+        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // ✅ REQUIRED
+          },
+        }
       );
 
-      // ✅ SUCCESS CALLBACK
       onSuccess?.();
+      close();
 
-      // RESET FORM
       setForm({ name: "", price: "", category: "" });
       setImageFile(null);
       setPreview("");
-
-      close();
     } catch (error) {
       console.error("Gift add failed:", error);
-      alert("Something went wrong");
+      alert(
+        error?.response?.data?.message || "Something went wrong"
+      );
     } finally {
       setLoading(false);
     }
@@ -165,7 +168,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             required
             onChange={(e) => {
               const file = e.target.files[0];
-              if (!file.type.startsWith("image/")) {
+              if (!file?.type.startsWith("image/")) {
                 alert("Only image files allowed");
                 return;
               }
