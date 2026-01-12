@@ -8,32 +8,50 @@ import AddGiftModal from "../giftStoreManagement/AddStoreGiftModal";
 import EditGiftModal from "../giftsManagement/EditGiftModal";
 import AddCategoryModal from "../giftStoreManagement/AddStoreCategoryModal";
 
+const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/store-gifts";
+
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [openAddCategory, setOpenAddCategory] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
 
   const [selectedGift, setSelectedGift] = useState(null);
-  const [gifts, setGifts] = useState([]); // always array
+  const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [categoryId, setCategoryId] = useState("all");
+  const [skip, setSkip] = useState(0);
+  const limit = 20;
+  const [total, setTotal] = useState(0);
+
   /* ===============================
-     FETCH ALL STORE GIFTS
+     FETCH GIFTS BY CATEGORY
   =============================== */
-  const fetchGifts = async () => {
+  const fetchGifts = async (
+    selectedCategory = categoryId,
+    skipValue = skip
+  ) => {
     try {
       setLoading(true);
 
       const res = await axios.get(
-        "https://chat-app-1-qvl9.onrender.com/api/store-gifts"
+        `${API_BASE}/by-category/${selectedCategory}`,
+        {
+          params: {
+            skip: skipValue,
+            limit,
+          },
+        }
       );
 
       console.log("GIFTS API RESPONSE:", res.data);
 
-      if (res.data?.success && Array.isArray(res.data.gifts)) {
-        setGifts(res.data.gifts);
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setGifts(res.data.data);
+        setTotal(res.data.pagination.total);
       } else {
         setGifts([]);
+        setTotal(0);
       }
     } catch (error) {
       console.error("Fetch gifts failed:", error);
@@ -43,9 +61,30 @@ export default function GiftsPage() {
     }
   };
 
+  /* ===============================
+     INITIAL LOAD
+  =============================== */
   useEffect(() => {
-    fetchGifts();
+    fetchGifts("all", 0);
   }, []);
+
+  /* ===============================
+     CATEGORY CHANGE
+  =============================== */
+  const handleCategoryChange = (id) => {
+    setCategoryId(id);
+    setSkip(0);
+    fetchGifts(id, 0);
+  };
+
+  /* ===============================
+     LOAD MORE (PAGINATION)
+  =============================== */
+  const loadMore = () => {
+    const newSkip = skip + limit;
+    setSkip(newSkip);
+    fetchGifts(categoryId, newSkip);
+  };
 
   /* ===============================
      DELETE (UI ONLY)
@@ -53,10 +92,9 @@ export default function GiftsPage() {
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this gift?")) return;
 
-    // Optimistic UI update
-    setGifts((prev) => prev.filter((g) => g?._id !== id));
+    setGifts((prev) => prev.filter((g) => g._id !== id));
 
-    // TODO: call delete API
+    // TODO: Call delete API here
   };
 
   return (
@@ -82,12 +120,28 @@ export default function GiftsPage() {
         </div>
       </div>
 
+      {/* CATEGORY FILTER (SAMPLE) */}
+      <div className="flex gap-3 mb-6">
+        <button
+          onClick={() => handleCategoryChange("all")}
+          className={`px-4 py-1 rounded ${
+            categoryId === "all"
+              ? "bg-purple-600 text-white"
+              : "bg-white border"
+          }`}
+        >
+          All
+        </button>
+
+        {/* Add dynamic category buttons here */}
+      </div>
+
       {loading && <p className="text-gray-500">Loading gifts...</p>}
 
       {/* GIFTS GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5">
         {!loading && gifts.length === 0 && (
-          <p className="text-gray-500">No gifts added yet.</p>
+          <p className="text-gray-500">No gifts found.</p>
         )}
 
         {gifts.map((gift) => (
@@ -132,6 +186,18 @@ export default function GiftsPage() {
           </div>
         ))}
       </div>
+
+      {/* LOAD MORE */}
+      {gifts.length < total && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={loadMore}
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg"
+          >
+            Load More
+          </button>
+        </div>
+      )}
 
       {/* MODALS */}
       {openAdd && (
