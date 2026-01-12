@@ -22,7 +22,7 @@ export default function GiftsPage() {
       setLoading(true);
 
       const res = await axios.get(
-        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/categories"
+        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
       );
 
       console.log("API RESPONSE:", res.data); // 🔍 Debug (safe to remove later)
