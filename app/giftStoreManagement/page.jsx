@@ -27,15 +27,12 @@ export default function GiftsPage() {
   /* ===============================
      FETCH GIFTS (BACKEND MATCH)
   =============================== */
-  const fetchGifts = async (
-    selectedCategory = "all",
-    skipValue = 0
-  ) => {
+  const fetchGifts = async (selectedCategory = "all", skipValue = 0) => {
     try {
       setLoading(true);
 
       const res = await axios.get(
-        `${API_BASE}/by-category/${selectedCategory}`,
+        `${API_BASE}/get-gift-by-category/${selectedCategory}`,
         {
           params: { skip: skipValue, limit },
         }
@@ -149,10 +146,7 @@ export default function GiftsPage() {
         )}
 
         {gifts.map((gift) => (
-          <div
-            key={gift._id}
-            className="bg-white rounded-xl shadow p-3 border"
-          >
+          <div key={gift._id} className="bg-white rounded-xl shadow p-3 border">
             <img
               src={gift.giftImage || "/placeholder.png"}
               alt={gift.name}
