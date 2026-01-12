@@ -25,11 +25,11 @@ export default function GiftsPage() {
   const [total, setTotal] = useState(0);
 
   /* ===============================
-     FETCH GIFTS BY CATEGORY
+     FETCH GIFTS (BACKEND MATCH)
   =============================== */
   const fetchGifts = async (
-    selectedCategory = categoryId,
-    skipValue = skip
+    selectedCategory = "all",
+    skipValue = 0
   ) => {
     try {
       setLoading(true);
@@ -43,8 +43,6 @@ export default function GiftsPage() {
           },
         }
       );
-
-      console.log("GIFTS API RESPONSE:", res.data);
 
       if (res.data?.success && Array.isArray(res.data.data)) {
         setGifts(res.data.data);
@@ -87,14 +85,37 @@ export default function GiftsPage() {
   };
 
   /* ===============================
-     DELETE (UI ONLY)
+     DELETE GIFT (AUTH REQUIRED)
   =============================== */
-  const handleDelete = async (id) => {
+  const handleDelete = async (giftId) => {
     if (!confirm("Are you sure you want to delete this gift?")) return;
 
-    setGifts((prev) => prev.filter((g) => g._id !== id));
+    try {
+      const token = localStorage.getItem("authToken"); // 🔐 REQUIRED
 
-    // TODO: Call delete API here
+      if (!token) {
+        alert("Unauthorized! Please login again.");
+        return;
+      }
+
+      await axios.delete(`${API_BASE}/delete/${giftId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // ✅ Update UI after successful delete
+      setGifts((prev) => prev.filter((g) => g._id !== giftId));
+
+      alert("Gift deleted successfully ✅");
+    } catch (error) {
+      console.error("Delete gift failed:", error);
+
+      alert(
+        error?.response?.data?.message ||
+          "Failed to delete gift. Please try again."
+      );
+    }
   };
 
   return (
@@ -120,7 +141,7 @@ export default function GiftsPage() {
         </div>
       </div>
 
-      {/* CATEGORY FILTER (SAMPLE) */}
+      {/* CATEGORY FILTER */}
       <div className="flex gap-3 mb-6">
         <button
           onClick={() => handleCategoryChange("all")}
@@ -132,8 +153,6 @@ export default function GiftsPage() {
         >
           All
         </button>
-
-        {/* Add dynamic category buttons here */}
       </div>
 
       {loading && <p className="text-gray-500">Loading gifts...</p>}
