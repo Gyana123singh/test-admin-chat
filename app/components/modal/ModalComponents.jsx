@@ -1,17 +1,26 @@
-// src/admin/component/Modal/ModalComponent.jsx
+// src/admin/components/modal/ModalComponent.jsx
 import { X } from "lucide-react";
 
 export default function ModalComponent({ title, onClose, children }) {
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50 ">
-      <div className="">
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 hover:bg-blue-800 cursor-pointer rounded text-gray-500 hover:text-gray-100"
-        >
-          {/* <X size={40} /> */}
-        </button>
-        {title && <h2 className="text-lg font-semibold mb-4">{title}</h2>}
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Background Overlay */}
+      <div
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* Modal Box */}
+      <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          {title && <h2 className="text-lg font-semibold">{title}</h2>}
+          <button onClick={onClose} className="text-gray-400 hover:text-black">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* Content */}
         {children}
       </div>
     </div>
