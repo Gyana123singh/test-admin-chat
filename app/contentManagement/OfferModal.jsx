@@ -1,4 +1,5 @@
 // src/admin/component/CMS/OfferModal.jsx
+"use client";
 export default function OfferModal({ onClose }) {
   return (
     <form className="space-y-4">

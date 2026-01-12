@@ -1,5 +1,6 @@
 // src/admin/pages/CMSPage.jsx
-import { useState } from "react";
+"use client";
+import { useState, useEffect } from "react";
 import { ImageIcon, Tag, Megaphone, Monitor } from "lucide-react";
 import ModalComponent from "../components/modal/ModalComponents";
 

@@ -1,4 +1,5 @@
 // src/admin/component/CMS/AdModal.jsx
+"use client";
 export default function AdModal({ onClose }) {
   return (
     <form className="space-y-4">
@@ -15,7 +16,11 @@ export default function AdModal({ onClose }) {
       />
 
       <div className="flex justify-end gap-2">
-        <button type="button" onClick={onClose} className="border px-4 py-2 rounded">
+        <button
+          type="button"
+          onClick={onClose}
+          className="border px-4 py-2 rounded"
+        >
           Cancel
         </button>
         <button className="bg-black text-white px-4 py-2 rounded">

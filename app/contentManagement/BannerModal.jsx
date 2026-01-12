@@ -1,5 +1,6 @@
 // src/admin/component/CMS/BannerModal.jsx
-import { useState } from "react";
+"use client";
+import { useState, useEffect } from "react";
 
 export default function BannerModal({ onClose }) {
   const [file, setFile] = useState(null);

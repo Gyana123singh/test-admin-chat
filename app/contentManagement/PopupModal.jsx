@@ -1,4 +1,5 @@
 // src/admin/component/CMS/PopupModal.jsx
+"use client";
 export default function PopupModal({ onClose }) {
   return (
     <form className="space-y-4">
