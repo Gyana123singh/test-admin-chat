@@ -14,17 +14,19 @@ export default function GiftsPage() {
   const [openEdit, setOpenEdit] = useState(false);
 
   const [selectedGift, setSelectedGift] = useState(null);
-  const [gifts, setGifts] = useState([]);
+  const [gifts, setGifts] = useState([]); // ALWAYS ARRAY
   const [loading, setLoading] = useState(false);
 
+  // ✅ FETCH GIFTS (SAFE)
   const fetchGifts = async () => {
     try {
       setLoading(true);
+
       const res = await axios.get(
         "https://chat-app-1-qvl9.onrender.com/api/gift/getAllGift"
       );
 
-      if (res.data.success) {
+      if (res.data?.success && Array.isArray(res.data.gifts)) {
         setGifts(res.data.gifts);
       } else {
         setGifts([]);
@@ -41,9 +43,11 @@ export default function GiftsPage() {
     fetchGifts();
   }, []);
 
+  // ✅ SAFE DELETE
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this gift?")) return;
-    setGifts((prev) => prev.filter((g) => g._id !== id));
+
+    setGifts((prev = []) => prev.filter((g) => g._id !== id));
   };
 
   return (
@@ -69,59 +73,64 @@ export default function GiftsPage() {
         </div>
       </div>
 
+      {/* LOADING */}
       {loading && <p className="text-gray-500">Loading gifts...</p>}
 
+      {/* GIFTS GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5">
-        {!loading && gifts.length === 0 && (
-          <p className="text-gray-500">No gifts added yet.</p>
+        {!loading && Array.isArray(gifts) && gifts.length === 0 && (
+          <p className="text-gray-500 col-span-full">
+            No gifts added yet.
+          </p>
         )}
 
-        {gifts.map((gift) => (
-          <div
-            key={gift._id}
-            className="bg-white rounded-xl shadow p-3 border"
-          >
-            <img
-              src={gift.giftImage}
-              alt={gift.name}
-              className="w-full h-28 object-contain rounded mb-2"
-            />
+        {Array.isArray(gifts) &&
+          gifts.map((gift) => (
+            <div
+              key={gift._id}
+              className="bg-white rounded-xl shadow p-3 border"
+            >
+              <img
+                src={gift.giftImage}
+                alt={gift.name}
+                className="w-full h-28 object-contain rounded mb-2"
+              />
 
-            <h3 className="text-sm font-semibold truncate">
-              {gift.name}
-            </h3>
+              <h3 className="text-sm font-semibold truncate">
+                {gift.name}
+              </h3>
 
-            {/* ✅ FIXED CATEGORY */}
-            <p className="text-xs text-gray-600">
-              {gift.category?.name || "Uncategorized"}
-            </p>
+              <p className="text-xs text-gray-600">
+                {gift.category?.name || "Uncategorized"}
+              </p>
 
-            <p className="text-xs font-semibold text-purple-600">
-              {gift.price} coins
-            </p>
+              <p className="text-xs font-semibold text-purple-600">
+                {gift.price} coins
+              </p>
 
-            <div className="flex justify-between mt-3">
-              <button
-                onClick={() => {
-                  setSelectedGift(gift);
-                  setOpenEdit(true);
-                }}
-                className="text-blue-500"
-              >
-                <Edit size={18} />
-              </button>
+              <div className="flex justify-between mt-3">
+                <button
+                  onClick={() => {
+                    setSelectedGift(gift);
+                    setOpenEdit(true);
+                  }}
+                  className="text-blue-500"
+                >
+                  <Edit size={18} />
+                </button>
 
-              <button
-                onClick={() => handleDelete(gift._id)}
-                className="text-red-500"
-              >
-                <Trash size={18} />
-              </button>
+                <button
+                  onClick={() => handleDelete(gift._id)}
+                  className="text-red-500"
+                >
+                  <Trash size={18} />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
       </div>
 
+      {/* MODALS */}
       {openAdd && (
         <AddGiftModal
           close={() => setOpenAdd(false)}
@@ -130,7 +139,9 @@ export default function GiftsPage() {
       )}
 
       {openAddCategory && (
-        <AddCategoryModal close={() => setOpenAddCategory(false)} />
+        <AddCategoryModal
+          close={() => setOpenAddCategory(false)}
+        />
       )}
 
       {openEdit && selectedGift && (
