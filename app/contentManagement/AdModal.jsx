@@ -45,7 +45,7 @@ export default function AdModal({ onClose }) {
               <img
                 src={preview}
                 alt="preview"
-                className="w-full h-40 object-contain"
+                className="w-full h-42 object-contain"
               />
             )}
           </div>
