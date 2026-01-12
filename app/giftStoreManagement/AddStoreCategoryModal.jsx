@@ -24,7 +24,7 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
         { name: name.trim() },
         { withCredentials: true }
       );
-      console.log(res.data);
+      console.log(res.data, "Category Added");
       setName("");
       close();
     } catch (err) {
