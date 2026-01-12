@@ -2,7 +2,7 @@
 import axios from "axios";
 import { useState } from "react";
 
-export default function AddCategoryModal({ close, onCategoryAdded }) {
+export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -24,17 +24,17 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
         { name: name.trim() },
         { withCredentials: true }
       );
-      console.log(res.data, "Category Add");
+
+      // ✅ NOTIFY PARENT
+      onCategoryAdded?.(res.data);
+
       setName("");
       close();
     } catch (err) {
-      if (err.response) {
-        setError(err.response.data.message);
-      } else if (err.request) {
-        setError("Backend not responding");
-      } else {
-        setError("Something went wrong");
-      }
+      setError(
+        err.response?.data?.message ||
+          (err.request ? "Backend not responding" : "Something went wrong")
+      );
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,9 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl shadow-md w-[450px]">
-        <h2 className="text-xl font-bold mb-4">Add Gift Store Category</h2>
+        <h2 className="text-xl font-bold mb-4">
+          Add Gift Store Category
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -59,7 +61,9 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+          {error && (
+            <p className="text-red-500 text-sm font-medium">{error}</p>
+          )}
 
           <div className="flex gap-3">
             <button
