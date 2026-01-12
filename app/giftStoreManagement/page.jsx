@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Plus, Edit, Trash } from "lucide-react";
 
-import AddGiftModal from "../giftsManagement/AddGiftModal";
+import AddGiftModal from "../giftStoreManagement/AddStoreGiftModal";
 import EditGiftModal from "../giftsManagement/EditGiftModal";
-import AddCategoryModal from "../giftsManagement/AddCategoryModal";
+import AddCategoryModal from "../giftStoreManagement/AddStoreCategoryModal";
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
