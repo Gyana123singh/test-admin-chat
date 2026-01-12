@@ -38,7 +38,7 @@ export default function AddGiftModal({ close, onSuccess }) {
     const fetchCategories = async () => {
       try {
         const res = await axios.get(
-          "https://chat-app-1-qvl9.onrender.com/api/store-gifts/categories"
+          "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
 
         // ✅ ALWAYS SET ARRAY
