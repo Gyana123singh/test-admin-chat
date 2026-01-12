@@ -37,10 +37,7 @@ export default function GiftsPage() {
       const res = await axios.get(
         `${API_BASE}/by-category/${selectedCategory}`,
         {
-          params: {
-            skip: skipValue,
-            limit,
-          },
+          params: { skip: skipValue, limit },
         }
       );
 
@@ -76,7 +73,7 @@ export default function GiftsPage() {
   };
 
   /* ===============================
-     LOAD MORE (PAGINATION)
+     LOAD MORE
   =============================== */
   const loadMore = () => {
     const newSkip = skip + limit;
@@ -85,32 +82,20 @@ export default function GiftsPage() {
   };
 
   /* ===============================
-     DELETE GIFT (AUTH REQUIRED)
+     DELETE GIFT (NO AUTH)
   =============================== */
   const handleDelete = async (giftId) => {
     if (!confirm("Are you sure you want to delete this gift?")) return;
 
     try {
-      const token = localStorage.getItem("authToken"); // 🔐 REQUIRED
+      await axios.delete(`${API_BASE}/delete/${giftId}`);
 
-      if (!token) {
-        alert("Unauthorized! Please login again.");
-        return;
-      }
-
-      await axios.delete(`${API_BASE}/delete/${giftId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      // ✅ Update UI after successful delete
+      // ✅ Update UI
       setGifts((prev) => prev.filter((g) => g._id !== giftId));
 
       alert("Gift deleted successfully ✅");
     } catch (error) {
       console.error("Delete gift failed:", error);
-
       alert(
         error?.response?.data?.message ||
           "Failed to delete gift. Please try again."
