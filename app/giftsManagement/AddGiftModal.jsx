@@ -28,8 +28,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   /* ===============================
@@ -74,26 +73,27 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
-      formData.append("image", imageFile); // backend expects req.file
+      formData.append("icon", imageFile); // multer.single("icon")
 
       await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/api/gift/addGift",
+        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
         formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
-      // ✅ SUCCESS CALLBACK
       onSuccess?.();
+      close();
 
-      // RESET FORM
       setForm({ name: "", price: "", category: "" });
       setImageFile(null);
       setPreview("");
-
-      close();
     } catch (error) {
       console.error("Gift add failed:", error);
-      alert("Something went wrong");
+      alert(error?.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -110,9 +110,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           <input
             className="border p-2 rounded w-full mb-3"
             value={form.name}
-            onChange={(e) =>
-              setForm({ ...form, name: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
 
@@ -122,9 +120,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             type="number"
             className="border p-2 rounded w-full mb-3"
             value={form.price}
-            onChange={(e) =>
-              setForm({ ...form, price: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
             required
           />
 
@@ -191,10 +187,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           </button>
         </form>
 
-        <button
-          onClick={close}
-          className="text-red-500 mt-3 w-full"
-        >
+        <button onClick={close} className="text-red-500 mt-3 w-full">
           Cancel
         </button>
       </div>
