@@ -27,8 +27,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   /* ===============================
@@ -40,11 +39,9 @@ export default function AddGiftModal({ close, onSuccess }) {
         const res = await axios.get(
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
-
+        console.log("Categories fetched:", res.data); // 🔍 Debug
         // ✅ ALWAYS SET ARRAY
-        setCategories(
-          Array.isArray(res?.data?.data) ? res.data.data : []
-        );
+        setCategories(Array.isArray(res?.data?.data) ? res.data.data : []);
       } catch (err) {
         console.error("Category fetch failed", err);
         setCategories([]); // ✅ never undefined
@@ -100,9 +97,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       setPreview("");
     } catch (error) {
       console.error("Gift add failed:", error);
-      alert(
-        error?.response?.data?.message || "Something went wrong"
-      );
+      alert(error?.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -119,9 +114,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           <input
             className="border p-2 rounded w-full mb-3"
             value={form.name}
-            onChange={(e) =>
-              setForm({ ...form, name: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
 
@@ -131,9 +124,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             type="number"
             className="border p-2 rounded w-full mb-3"
             value={form.price}
-            onChange={(e) =>
-              setForm({ ...form, price: e.target.value })
-            }
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
             required
           />
 
@@ -145,9 +136,8 @@ export default function AddGiftModal({ close, onSuccess }) {
               onClick={() => setIsOpen(!isOpen)}
             >
               {categories.length > 0
-                ? categories.find(
-                    (c) => c._id === form.category
-                  )?.name || "Select Category"
+                ? categories.find((c) => c._id === form.category)?.name ||
+                  "Select Category"
                 : "Loading categories..."}
             </div>
 
@@ -203,10 +193,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           </button>
         </form>
 
-        <button
-          onClick={close}
-          className="text-red-500 mt-3 w-full"
-        >
+        <button onClick={close} className="text-red-500 mt-3 w-full">
           Cancel
         </button>
       </div>
