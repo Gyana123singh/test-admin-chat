@@ -31,7 +31,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, []);
 
   /* ===============================
-     FETCH CATEGORIES (SAFE)
+     FETCH CATEGORIES (FIXED)
   =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
@@ -39,12 +39,20 @@ export default function AddGiftModal({ close, onSuccess }) {
         const res = await axios.get(
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
-        console.log("Categories fetched:", res.data); // 🔍 Debug
-        // ✅ ALWAYS SET ARRAY
-        setCategories(Array.isArray(res?.data?.data) ? res.data.data : []);
+
+        console.log("FULL CATEGORY RESPONSE:", res.data);
+
+        // ✅ UNIVERSAL SAFE HANDLING
+        const cats =
+          res.data?.categories ||
+          res.data?.data?.categories ||
+          res.data?.data ||
+          [];
+
+        setCategories(Array.isArray(cats) ? cats : []);
       } catch (err) {
         console.error("Category fetch failed", err);
-        setCategories([]); // ✅ never undefined
+        setCategories([]);
       }
     };
 
@@ -76,7 +84,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
-      formData.append("icon", imageFile); // ✅ MUST match multer.single("icon")
+      formData.append("icon", imageFile); // ✅ multer.single("icon")
 
       await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
@@ -84,7 +92,7 @@ export default function AddGiftModal({ close, onSuccess }) {
         {
           headers: {
             "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${localStorage.getItem("token")}`, // ✅ REQUIRED
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
       );
@@ -128,27 +136,31 @@ export default function AddGiftModal({ close, onSuccess }) {
             required
           />
 
-          {/* CATEGORY */}
+          {/* CATEGORY DROPDOWN */}
           <label className="text-sm font-semibold">Category</label>
           <div className="relative mb-3" ref={dropdownRef}>
             <div
               className="border p-2 rounded cursor-pointer bg-white"
               onClick={() => setIsOpen(!isOpen)}
             >
-              {categories.length > 0
-                ? categories.find((c) => c._id === form.category)?.name ||
-                  "Select Category"
-                : "Loading categories..."}
+              {form.category
+                ? categories.find(
+                    (c) => (c._id || c.id) === form.category
+                  )?.name || "Select Category"
+                : "Select Category"}
             </div>
 
             {isOpen && categories.length > 0 && (
               <div className="absolute z-50 bg-white border rounded mt-1 max-h-40 overflow-y-auto w-full shadow-md">
                 {categories.map((cat) => (
                   <div
-                    key={cat._id}
+                    key={cat._id || cat.id}
                     className="p-2 hover:bg-purple-100 cursor-pointer"
                     onClick={() => {
-                      setForm({ ...form, category: cat._id });
+                      setForm({
+                        ...form,
+                        category: cat._id || cat.id,
+                      });
                       setIsOpen(false);
                     }}
                   >
