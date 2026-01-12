@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import ModalComponent from "../components/modal/ModalComponent";
+import ModalComponent from "../components/modal/ModalComponents";
 import { Upload } from "lucide-react";
 
 export default function AdModal({ onClose }) {
@@ -21,9 +21,7 @@ export default function AdModal({ onClose }) {
         {/* Upload Box */}
         <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-6 cursor-pointer hover:bg-gray-50 transition">
           <Upload className="w-8 h-8 text-gray-400 mb-2" />
-          <p className="text-sm text-gray-600">
-            Upload Image / GIF / Video
-          </p>
+          <p className="text-sm text-gray-600">Upload Image / GIF / Video</p>
           <input
             type="file"
             accept="image/png,image/jpeg,image/jpg,image/gif,video/mp4,video/webm"
@@ -79,4 +77,3 @@ export default function AdModal({ onClose }) {
     </ModalComponent>
   );
 }
-
