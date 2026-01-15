@@ -44,7 +44,9 @@ export default function AddGiftModal({ close, onSuccess }) {
         console.log("CATEGORY API RESPONSE:", res.data);
 
         // ✅ BACKEND RETURNS { success, count, categories }
-        setCategories(Array.isArray(res.data.categories) ? res.data.categories : []);
+        setCategories(
+          Array.isArray(res.data.categories) ? res.data.categories : []
+        );
       } catch (err) {
         console.error("❌ Category fetch failed", err);
         setCategories([]);
@@ -135,6 +137,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           />
 
           {/* CATEGORY DROPDOWN */}
+
           <label className="text-sm font-semibold">Category</label>
           <div className="relative mb-3" ref={dropdownRef}>
             <div
@@ -142,7 +145,7 @@ export default function AddGiftModal({ close, onSuccess }) {
               onClick={() => setIsOpen(!isOpen)}
             >
               {form.category
-                ? categories.find((c) => c._id === form.category)?.name
+                ? categories.find((c) => c._id === form.category)?.type
                 : "Select Category"}
               <span className="text-xs text-gray-400">▼</span>
             </div>
@@ -152,7 +155,7 @@ export default function AddGiftModal({ close, onSuccess }) {
                 {categories.map((cat) => (
                   <div
                     key={cat._id}
-                    className="p-2 hover:bg-purple-100 cursor-pointer flex justify-between"
+                    className="p-2 hover:bg-purple-100 cursor-pointer"
                     onClick={() => {
                       setForm({
                         ...form,
@@ -162,8 +165,7 @@ export default function AddGiftModal({ close, onSuccess }) {
                       setIsOpen(false);
                     }}
                   >
-                    <span>{cat.name}</span>
-                    <span className="text-xs text-gray-500">{cat.type}</span>
+                    <span className="font-medium">{cat.type}</span>
                   </div>
                 ))}
               </div>
@@ -178,7 +180,9 @@ export default function AddGiftModal({ close, onSuccess }) {
           )}
 
           {/* IMAGE */}
-          <label className="text-sm font-semibold">Gift Image / Animation</label>
+          <label className="text-sm font-semibold">
+            Gift Image / Animation
+          </label>
           <input
             type="file"
             accept="image/*,video/mp4,application/json"
