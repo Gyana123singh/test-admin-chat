@@ -69,7 +69,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.price || !form.category || !imageFile) {
+    if (!form.price || !form.category || !imageFile) {
       alert("All fields are required");
       return;
     }
