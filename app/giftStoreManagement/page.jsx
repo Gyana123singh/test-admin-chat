@@ -6,8 +6,19 @@ import { Plus, Edit, Trash } from "lucide-react";
 
 import AddGiftModal from "../giftStoreManagement/AddStoreGiftModal";
 import EditGiftModal from "../giftsManagement/EditGiftModal";
+import AddCategoryModal from "../giftStoreManagement/AddStoreCategoryModal";
 
 const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/store-gifts";
+
+const CATEGORY_TYPES = [
+  "ALL",
+  "ENTRANCE",
+  "FRAME",
+  "RING",
+  "BUBBLE",
+  "THEME",
+  "EMOJI",
+];
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
@@ -18,34 +29,40 @@ export default function GiftsPage() {
   const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const [categoryId, setCategoryId] = useState("all");
+  const [selectedType, setSelectedType] = useState("ALL");
   const [skip, setSkip] = useState(0);
   const limit = 20;
   const [total, setTotal] = useState(0);
 
   /* ===============================
-     FETCH GIFTS (BACKEND MATCH)
+     FETCH GIFTS BY TYPE
   =============================== */
-  const fetchGifts = async (selectedCategory = "all", skipValue = 0) => {
+  const fetchGifts = async (type = "ALL", skipValue = 0) => {
     try {
       setLoading(true);
 
-      const res = await axios.get(
-        `${API_BASE}/get-gift-by-category/${selectedCategory}`,
-        {
-          params: { skip: skipValue, limit },
-        }
-      );
+      const url =
+        type === "ALL"
+          ? `${API_BASE}/getStoreCategory`
+          : `${API_BASE}/get-gifts-by-type/${type}`;
+
+      const res = await axios.get(url, {
+        params: { skip: skipValue, limit },
+      });
 
       if (res.data?.success && Array.isArray(res.data.data)) {
-        setGifts(res.data.data);
-        setTotal(res.data.pagination.total);
+        setGifts(
+          skipValue === 0
+            ? res.data.data
+            : (prev) => [...prev, ...res.data.data]
+        );
+        setTotal(res.data.pagination?.total || 0);
       } else {
         setGifts([]);
         setTotal(0);
       }
     } catch (error) {
-      console.error("Fetch gifts failed:", error);
+      console.error("❌ Fetch gifts failed:", error);
       setGifts([]);
     } finally {
       setLoading(false);
@@ -56,16 +73,16 @@ export default function GiftsPage() {
      INITIAL LOAD
   =============================== */
   useEffect(() => {
-    fetchGifts("all", 0);
+    fetchGifts("ALL", 0);
   }, []);
 
   /* ===============================
-     CATEGORY CHANGE
+     TYPE CHANGE
   =============================== */
-  const handleCategoryChange = (id) => {
-    setCategoryId(id);
+  const handleTypeChange = (type) => {
+    setSelectedType(type);
     setSkip(0);
-    fetchGifts(id, 0);
+    fetchGifts(type, 0);
   };
 
   /* ===============================
@@ -74,28 +91,22 @@ export default function GiftsPage() {
   const loadMore = () => {
     const newSkip = skip + limit;
     setSkip(newSkip);
-    fetchGifts(categoryId, newSkip);
+    fetchGifts(selectedType, newSkip);
   };
 
   /* ===============================
-     DELETE GIFT (NO AUTH)
+     DELETE GIFT
   =============================== */
   const handleDelete = async (giftId) => {
     if (!confirm("Are you sure you want to delete this gift?")) return;
 
     try {
       await axios.delete(`${API_BASE}/delete/${giftId}`);
-
-      // ✅ Update UI
       setGifts((prev) => prev.filter((g) => g._id !== giftId));
-
       alert("Gift deleted successfully ✅");
     } catch (error) {
-      console.error("Delete gift failed:", error);
-      alert(
-        error?.response?.data?.message ||
-          "Failed to delete gift. Please try again."
-      );
+      console.error("❌ Delete gift failed:", error);
+      alert(error?.response?.data?.message || "Failed to delete gift");
     }
   };
 
@@ -122,18 +133,21 @@ export default function GiftsPage() {
         </div>
       </div>
 
-      {/* CATEGORY FILTER */}
-      <div className="flex gap-3 mb-6">
-        <button
-          onClick={() => handleCategoryChange("all")}
-          className={`px-4 py-1 rounded ${
-            categoryId === "all"
-              ? "bg-purple-600 text-white"
-              : "bg-white border"
-          }`}
-        >
-          All
-        </button>
+      {/* CATEGORY TYPE FILTER (WAFA STYLE) */}
+      <div className="flex gap-3 mb-6 flex-wrap">
+        {CATEGORY_TYPES.map((type) => (
+          <button
+            key={type}
+            onClick={() => handleTypeChange(type)}
+            className={`px-4 py-1 rounded-full text-sm font-semibold transition ${
+              selectedType === type
+                ? "bg-purple-600 text-white"
+                : "bg-white border hover:bg-purple-50"
+            }`}
+          >
+            {type}
+          </button>
+        ))}
       </div>
 
       {loading && <p className="text-gray-500">Loading gifts...</p>}
@@ -155,7 +169,7 @@ export default function GiftsPage() {
             <h3 className="text-sm font-semibold truncate">{gift.name}</h3>
 
             <p className="text-xs text-gray-600">
-              {gift.category?.name || "Uncategorized"}
+              {gift.category?.type || "Uncategorized"}
             </p>
 
             <p className="text-xs font-semibold text-purple-600">
