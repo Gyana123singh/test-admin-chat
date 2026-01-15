@@ -7,32 +7,44 @@ export default function AddGiftModal({ close, onSuccess }) {
   const [preview, setPreview] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [gifts, setGifts] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [isOpen, setIsOpen] = useState(false);
+  const [isGiftOpen, setIsGiftOpen] = useState(false);
+
   const dropdownRef = useRef(null);
+  const giftDropdownRef = useRef(null);
 
   const [form, setForm] = useState({
     name: "",
     price: "",
     category: "",
-    categoryType: "", // 🔥 important (ENTRANCE, FRAME, etc.)
+    categoryType: "",
   });
 
   /* ===============================
-     CLOSE DROPDOWN ON OUTSIDE CLICK
+     CLOSE DROPDOWNS ON OUTSIDE CLICK
   =============================== */
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsOpen(false);
       }
+      if (
+        giftDropdownRef.current &&
+        !giftDropdownRef.current.contains(e.target)
+      ) {
+        setIsGiftOpen(false);
+      }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   /* ===============================
-     FETCH CATEGORIES (MATCH BACKEND)
+     FETCH CATEGORIES
   =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
@@ -41,9 +53,6 @@ export default function AddGiftModal({ close, onSuccess }) {
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
 
-        console.log("CATEGORY API RESPONSE:", res.data);
-
-        // ✅ BACKEND RETURNS { success, count, categories }
         setCategories(
           Array.isArray(res.data.categories) ? res.data.categories : []
         );
@@ -54,6 +63,26 @@ export default function AddGiftModal({ close, onSuccess }) {
     };
 
     fetchCategories();
+  }, []);
+
+  /* ===============================
+     FETCH GIFTS
+  =============================== */
+  useEffect(() => {
+    const fetchGifts = async () => {
+      try {
+        const res = await axios.get(
+          "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getAllGifts"
+        );
+
+        setGifts(Array.isArray(res.data.data) ? res.data.data : []);
+      } catch (err) {
+        console.error("❌ Gift fetch failed", err);
+        setGifts([]);
+      }
+    };
+
+    fetchGifts();
   }, []);
 
   /* ===============================
@@ -117,27 +146,7 @@ export default function AddGiftModal({ close, onSuccess }) {
         <h2 className="text-xl font-bold mb-4">Add New Gift</h2>
 
         <form onSubmit={handleSubmit}>
-          {/* NAME */}
-          <label className="text-sm font-semibold">Gift Name</label>
-          <input
-            className="border p-2 rounded w-full mb-3"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
-
-          {/* PRICE */}
-          <label className="text-sm font-semibold">Coin Cost</label>
-          <input
-            type="number"
-            className="border p-2 rounded w-full mb-3"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            required
-          />
-
           {/* CATEGORY DROPDOWN */}
-
           <label className="text-sm font-semibold">Category</label>
           <div className="relative mb-3" ref={dropdownRef}>
             <div
@@ -160,7 +169,8 @@ export default function AddGiftModal({ close, onSuccess }) {
                       setForm({
                         ...form,
                         category: cat._id,
-                        categoryType: cat.type, // 🔥 store type
+                        categoryType: cat.type,
+                        name: "", // reset gift on category change
                       });
                       setIsOpen(false);
                     }}
@@ -172,12 +182,66 @@ export default function AddGiftModal({ close, onSuccess }) {
             )}
           </div>
 
-          {/* SHOW TYPE (WAFA STYLE) */}
+          {/* SHOW TYPE */}
           {form.categoryType && (
             <div className="mb-3 text-sm font-medium text-purple-600">
               Selected Type: {form.categoryType}
             </div>
           )}
+
+          {/* GIFT NAME DROPDOWN */}
+          <label className="text-sm font-semibold">Gift Name</label>
+          <div className="relative mb-3" ref={giftDropdownRef}>
+            <div
+              className="border p-2 rounded cursor-pointer bg-white flex justify-between items-center"
+              onClick={() => {
+                if (!form.category) {
+                  alert("Please select category first");
+                  return;
+                }
+                setIsGiftOpen(!isGiftOpen);
+              }}
+            >
+              {form.name || "Select Gift"}
+              <span className="text-xs text-gray-400">▼</span>
+            </div>
+
+            {isGiftOpen && (
+              <div className="absolute z-50 bg-white border rounded mt-1 max-h-52 overflow-y-auto w-full shadow-md">
+                {gifts
+                  .filter((gift) => gift.category?._id === form.category)
+                  .map((gift) => (
+                    <div
+                      key={gift._id}
+                      className="p-2 hover:bg-purple-100 cursor-pointer"
+                      onClick={() => {
+                        setForm({ ...form, name: gift.name });
+                        setIsGiftOpen(false);
+                      }}
+                    >
+                      <span className="font-medium">{gift.name}</span>
+                    </div>
+                  ))}
+
+                {gifts.filter((gift) => gift.category?._id === form.category)
+                  .length === 0 && (
+                  <div className="p-2 text-sm text-gray-400">
+                    No gifts found for this category
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* PRICE */}
+          <label className="text-sm font-semibold">Coin Cost</label>
+          <input
+            type="number"
+            className="border p-2 rounded w-full mb-3"
+            value={form.price}
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            required
+          />
 
           {/* IMAGE */}
           <label className="text-sm font-semibold">
@@ -196,7 +260,7 @@ export default function AddGiftModal({ close, onSuccess }) {
               if (file.type.startsWith("image/")) {
                 setPreview(URL.createObjectURL(file));
               } else {
-                setPreview(""); // for mp4/lottie no preview here
+                setPreview("");
               }
             }}
             className="mb-3"
