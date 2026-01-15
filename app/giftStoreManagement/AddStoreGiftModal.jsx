@@ -69,7 +69,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.price || !form.category || !imageFile) {
+    if (!form.name || !form.price || !form.category || !imageFile) {
       alert("All fields are required");
       return;
     }
@@ -78,6 +78,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       setLoading(true);
 
       const formData = new FormData();
+      formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
       formData.append("icon", imageFile);
@@ -96,7 +97,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       onSuccess?.();
       close();
 
-      setForm({ price: "", category: "", categoryType: "" });
+      setForm({ name: "", price: "", category: "", categoryType: "" });
       setImageFile(null);
       setPreview("");
     } catch (error) {
@@ -116,7 +117,14 @@ export default function AddGiftModal({ close, onSuccess }) {
         <h2 className="text-xl font-bold mb-4">Add New Gift</h2>
 
         <form onSubmit={handleSubmit}>
-          {/* SHOW TYPE */}
+          {/* NAME */}
+          <label className="text-sm font-semibold">Gift Name</label>
+          <input
+            className="border p-2 rounded w-full mb-3"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
 
           {/* PRICE */}
           <label className="text-sm font-semibold">Coin Cost</label>

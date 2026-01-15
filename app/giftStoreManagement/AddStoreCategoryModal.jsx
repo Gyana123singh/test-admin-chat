@@ -3,7 +3,6 @@ import axios from "axios";
 import { useState } from "react";
 
 export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
-  const [name, setName] = useState("");
   const [type, setType] = useState(""); // ✅ NEW
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -11,11 +10,6 @@ export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
-    if (!name.trim()) {
-      setError("Category name is required");
-      return;
-    }
 
     if (!type) {
       setError("Category type is required");
@@ -28,7 +22,6 @@ export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
       const res = await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/addStoreCategory",
         {
-          name: name.trim(),
           type, // ✅ SEND TYPE
         },
         { withCredentials: true }
@@ -36,7 +29,6 @@ export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
 
       onCategoryAdded?.(res.data.data);
 
-      setName("");
       setType("");
       close();
     } catch (err) {
@@ -56,18 +48,6 @@ export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* CATEGORY NAME */}
-          <div>
-            <label className="text-sm font-semibold block mb-1">
-              Category Name
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2"
-              placeholder="Enter category name"
-            />
-          </div>
 
           {/* CATEGORY TYPE */}
           <div>
