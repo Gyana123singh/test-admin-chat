@@ -6,7 +6,6 @@ import { Plus, Edit, Trash } from "lucide-react";
 
 import AddGiftModal from "../giftStoreManagement/AddStoreGiftModal";
 import EditGiftModal from "../giftsManagement/EditGiftModal";
-import AddCategoryModal from "../giftStoreManagement/AddStoreCategoryModal";
 
 const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/store-gifts";
 
