@@ -6,35 +6,25 @@ import axios from "axios";
 export default function AddGiftModal({ close, onSuccess }) {
   const [preview, setPreview] = useState("");
   const [imageFile, setImageFile] = useState(null);
-
   const [categories, setCategories] = useState([]);
-  const [giftNames, setGiftNames] = useState([]);
-
   const [loading, setLoading] = useState(false);
-
-  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
-  const [isNameOpen, setIsNameOpen] = useState(false);
-
-  const categoryRef = useRef(null);
-  const nameRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const [form, setForm] = useState({
     name: "",
     price: "",
     category: "",
-    categoryType: "",
+    categoryType: "", // 🔥 important (ENTRANCE, FRAME, etc.)
   });
 
   /* ===============================
-     CLOSE DROPDOWNS ON OUTSIDE CLICK
+     CLOSE DROPDOWN ON OUTSIDE CLICK
   =============================== */
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (categoryRef.current && !categoryRef.current.contains(e.target)) {
-        setIsCategoryOpen(false);
-      }
-      if (nameRef.current && !nameRef.current.contains(e.target)) {
-        setIsNameOpen(false);
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -42,7 +32,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, []);
 
   /* ===============================
-     FETCH CATEGORIES
+     FETCH CATEGORIES (MATCH BACKEND)
   =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
@@ -50,33 +40,18 @@ export default function AddGiftModal({ close, onSuccess }) {
         const res = await axios.get(
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
-        setCategories(
-          Array.isArray(res.data.categories) ? res.data.categories : []
-        );
+
+        console.log("CATEGORY API RESPONSE:", res.data);
+
+        // ✅ BACKEND RETURNS { success, count, categories }
+        setCategories(Array.isArray(res.data.categories) ? res.data.categories : []);
       } catch (err) {
         console.error("❌ Category fetch failed", err);
         setCategories([]);
       }
     };
-    fetchCategories();
-  }, []);
 
-  /* ===============================
-     FETCH GIFT NAMES
-  =============================== */
-  useEffect(() => {
-    const fetchGiftNames = async () => {
-      try {
-        const res = await axios.get(
-          "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getAllGifts"
-        );
-        setGiftNames(Array.isArray(res.data.data) ? res.data.data : []);
-      } catch (err) {
-        console.error("❌ Gift names fetch failed", err);
-        setGiftNames([]);
-      }
-    };
-    fetchGiftNames();
+    fetchCategories();
   }, []);
 
   /* ===============================
@@ -87,7 +62,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, [preview]);
 
   /* ===============================
-     SUBMIT
+     SUBMIT GIFT
   =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -119,6 +94,7 @@ export default function AddGiftModal({ close, onSuccess }) {
 
       onSuccess?.();
       close();
+
       setForm({ name: "", price: "", category: "", categoryType: "" });
       setImageFile(null);
       setPreview("");
@@ -139,34 +115,14 @@ export default function AddGiftModal({ close, onSuccess }) {
         <h2 className="text-xl font-bold mb-4">Add New Gift</h2>
 
         <form onSubmit={handleSubmit}>
-          {/* GIFT NAME DROPDOWN */}
+          {/* NAME */}
           <label className="text-sm font-semibold">Gift Name</label>
-          <div className="relative mb-3" ref={nameRef}>
-            <div
-              className="border p-2 rounded cursor-pointer bg-white flex justify-between items-center"
-              onClick={() => setIsNameOpen(!isNameOpen)}
-            >
-              {form.name || "Select Gift Name"}
-              <span className="text-xs text-gray-400">▼</span>
-            </div>
-
-            {isNameOpen && giftNames.length > 0 && (
-              <div className="absolute z-50 bg-white border rounded mt-1 max-h-52 overflow-y-auto w-full shadow-md">
-                {giftNames.map((gift) => (
-                  <div
-                    key={gift._id}
-                    className="p-2 hover:bg-purple-100 cursor-pointer"
-                    onClick={() => {
-                      setForm({ ...form, name: gift.name });
-                      setIsNameOpen(false);
-                    }}
-                  >
-                    {gift.name}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <input
+            className="border p-2 rounded w-full mb-3"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
+          />
 
           {/* PRICE */}
           <label className="text-sm font-semibold">Coin Cost</label>
@@ -180,18 +136,18 @@ export default function AddGiftModal({ close, onSuccess }) {
 
           {/* CATEGORY DROPDOWN */}
           <label className="text-sm font-semibold">Category</label>
-          <div className="relative mb-3" ref={categoryRef}>
+          <div className="relative mb-3" ref={dropdownRef}>
             <div
               className="border p-2 rounded cursor-pointer bg-white flex justify-between items-center"
-              onClick={() => setIsCategoryOpen(!isCategoryOpen)}
+              onClick={() => setIsOpen(!isOpen)}
             >
               {form.category
-                ? categories.find((c) => c._id === form.category)?.type
+                ? categories.find((c) => c._id === form.category)?.name
                 : "Select Category"}
               <span className="text-xs text-gray-400">▼</span>
             </div>
 
-            {isCategoryOpen && categories.length > 0 && (
+            {isOpen && categories.length > 0 && (
               <div className="absolute z-50 bg-white border rounded mt-1 max-h-52 overflow-y-auto w-full shadow-md">
                 {categories.map((cat) => (
                   <div
@@ -201,9 +157,9 @@ export default function AddGiftModal({ close, onSuccess }) {
                       setForm({
                         ...form,
                         category: cat._id,
-                        categoryType: cat.type,
+                        categoryType: cat.type, // 🔥 store type
                       });
-                      setIsCategoryOpen(false);
+                      setIsOpen(false);
                     }}
                   >
                     <span>{cat.name}</span>
@@ -214,6 +170,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             )}
           </div>
 
+          {/* SHOW TYPE (WAFA STYLE) */}
           {form.categoryType && (
             <div className="mb-3 text-sm font-medium text-purple-600">
               Selected Type: {form.categoryType}
@@ -221,9 +178,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           )}
 
           {/* IMAGE */}
-          <label className="text-sm font-semibold">
-            Gift Image / Animation
-          </label>
+          <label className="text-sm font-semibold">Gift Image / Animation</label>
           <input
             type="file"
             accept="image/*,video/mp4,application/json"
@@ -231,11 +186,13 @@ export default function AddGiftModal({ close, onSuccess }) {
             onChange={(e) => {
               const file = e.target.files[0];
               if (!file) return;
+
               setImageFile(file);
+
               if (file.type.startsWith("image/")) {
                 setPreview(URL.createObjectURL(file));
               } else {
-                setPreview("");
+                setPreview(""); // for mp4/lottie no preview here
               }
             }}
             className="mb-3"
@@ -249,6 +206,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             />
           )}
 
+          {/* WAFA BEHAVIOR HINT */}
           {form.categoryType === "FRAME" && (
             <p className="text-xs text-blue-600 mb-2">
               This gift will be applied as profile frame
