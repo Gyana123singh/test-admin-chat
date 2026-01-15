@@ -37,14 +37,14 @@ export default function GiftsPage() {
   /* ===============================
      FETCH GIFTS BY TYPE
   =============================== */
-  const fetchGifts = async (type = "ALL", skipValue = 0) => {
+  const fetchGifts = async (categoryId = "ALL", skipValue = 0) => {
     try {
       setLoading(true);
 
       const url =
-        type === "ALL"
+        categoryId === "ALL"
           ? `${API_BASE}/getStoreCategory`
-          : `${API_BASE}/get-gifts-by-type/${type}`;
+          : `${API_BASE}/get-gift-by-category/${categoryId}`;
 
       const res = await axios.get(url, {
         params: { skip: skipValue, limit },
