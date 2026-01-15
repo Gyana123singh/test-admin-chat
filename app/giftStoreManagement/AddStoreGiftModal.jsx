@@ -78,7 +78,6 @@ export default function AddGiftModal({ close, onSuccess }) {
       setLoading(true);
 
       const formData = new FormData();
-      formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
       formData.append("icon", imageFile);
@@ -97,7 +96,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       onSuccess?.();
       close();
 
-      setForm({ name: "", price: "", category: "", categoryType: "" });
+      setForm({ price: "", category: "", categoryType: "" });
       setImageFile(null);
       setPreview("");
     } catch (error) {
