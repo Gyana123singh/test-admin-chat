@@ -3,7 +3,7 @@ import axios from "axios";
 import { useState } from "react";
 
 export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
-  const [type, setType] = useState(""); // ✅ NEW
+  const [type, setType] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -21,17 +21,20 @@ export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
 
       const res = await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/addStoreCategory",
+        { type },
         {
-          type, // ✅ SEND TYPE
-        },
-        { withCredentials: true }
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`, // 🔥 IMPORTANT
+            "Content-Type": "application/json",
+          },
+        }
       );
 
       onCategoryAdded?.(res.data.data);
-
       setType("");
       close();
     } catch (err) {
+      console.error("❌ Add category error:", err.response?.data || err);
       setError(
         err.response?.data?.message ||
           (err.request ? "Backend not responding" : "Something went wrong")
@@ -47,9 +50,6 @@ export default function AddStoreCategoryModal({ close, onCategoryAdded }) {
         <h2 className="text-xl font-bold mb-4">Add Gift Store Category</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* CATEGORY NAME */}
-
-          {/* CATEGORY TYPE */}
           <div>
             <label className="text-sm font-semibold block mb-1">
               Category Type
