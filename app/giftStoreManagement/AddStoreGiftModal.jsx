@@ -117,47 +117,7 @@ export default function AddGiftModal({ close, onSuccess }) {
         <h2 className="text-xl font-bold mb-4">Add New Gift</h2>
 
         <form onSubmit={handleSubmit}>
-          {/* NAME */}
-          {/* CATEGORY DROPDOWN */}
-          <label className="text-sm font-semibold">Category Name</label>
-          <div className="relative mb-3" ref={dropdownRef}>
-            <div
-              className="border p-2 rounded cursor-pointer bg-white flex justify-between items-center"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {form.category
-                ? categories.find((c) => c._id === form.category)?.name
-                : "Select Category"}
-              <span className="text-xs text-gray-400">▼</span>
-            </div>
-
-            {isOpen && categories.length > 0 && (
-              <div className="absolute z-50 bg-white border rounded mt-1 max-h-52 overflow-y-auto w-full shadow-md">
-                {categories.map((cat) => (
-                  <div
-                    key={cat._id}
-                    className="p-2 hover:bg-purple-100 cursor-pointer"
-                    onClick={() => {
-                      setForm({
-                        ...form,
-                        category: cat._id,
-                        categoryType: cat.name,
-                        name: "", // reset gift on category change
-                      });
-                      setIsOpen(false);
-                    }}
-                  ></div>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* SHOW TYPE */}
-          {form.categoryType && (
-            <div className="mb-3 text-sm font-medium text-purple-600">
-              Selected Type: {form.categoryType}
-            </div>
-          )}
 
           {/* PRICE */}
           <label className="text-sm font-semibold">Coin Cost</label>
