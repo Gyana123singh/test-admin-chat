@@ -15,7 +15,7 @@ export default function AddGiftModal({ close, onSuccess }) {
     name: "",
     price: "",
     category: "",
-    categoryType: "",
+    // 🔥 important (ENTRANCE, FRAME, etc.)
   });
 
   /* ===============================
@@ -32,7 +32,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, []);
 
   /* ===============================
-     FETCH CATEGORIES (BULLETPROOF)
+     FETCH CATEGORIES (MATCH BACKEND)
   =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
@@ -41,8 +41,12 @@ export default function AddGiftModal({ close, onSuccess }) {
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
 
-        const list = res.data?.categories || res.data?.data || [];
-        setCategories(Array.isArray(list) ? list : []);
+        console.log("CATEGORY API RESPONSE:", res.data);
+
+        // ✅ BACKEND RETURNS { success, count, categories }
+        setCategories(
+          Array.isArray(res.data.categories) ? res.data.categories : []
+        );
       } catch (err) {
         console.error("❌ Category fetch failed", err);
         setCategories([]);
@@ -56,33 +60,14 @@ export default function AddGiftModal({ close, onSuccess }) {
      CLEANUP IMAGE PREVIEW
   =============================== */
   useEffect(() => {
-    return () => {
-      if (preview) URL.revokeObjectURL(preview);
-    };
+    return () => preview && URL.revokeObjectURL(preview);
   }, [preview]);
 
   /* ===============================
-     SUBMIT GIFT (NO BUG)
+     SUBMIT GIFT
   =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    console.log("DEBUG SUBMIT:", {
-      name: form.name,
-      price: form.price,
-      category: form.category,
-      imageFile,
-    });
-
-    if (
-      form.name.trim() === "" ||
-      form.price === "" ||
-      form.category === "" ||
-      !imageFile
-    ) {
-      alert("Name, price, category and image are required");
-      return;
-    }
 
     try {
       setLoading(true);
@@ -112,7 +97,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       setPreview("");
     } catch (error) {
       console.error("❌ Gift add failed:", error);
-      alert(error?.response?.data?.message || "Gift add failed");
+      alert(error?.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -132,9 +117,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           <input
             className="border p-2 rounded w-full mb-3"
             value={form.name}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, name: e.target.value }))
-            }
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
             required
           />
 
@@ -144,13 +127,12 @@ export default function AddGiftModal({ close, onSuccess }) {
             type="number"
             className="border p-2 rounded w-full mb-3"
             value={form.price}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, price: e.target.value }))
-            }
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
             required
           />
 
           {/* CATEGORY DROPDOWN */}
+
           <label className="text-sm font-semibold">Category</label>
           <div className="relative mb-3" ref={dropdownRef}>
             <div
@@ -170,16 +152,11 @@ export default function AddGiftModal({ close, onSuccess }) {
                     key={cat._id}
                     className="p-2 hover:bg-purple-100 cursor-pointer"
                     onClick={() => {
-                      if (!cat._id) {
-                        alert("Category ID missing from backend response");
-                        return;
-                      }
-
-                      setForm((prev) => ({
-                        ...prev,
+                      setForm({
+                        ...form,
                         category: cat._id,
-                        categoryType: cat.type,
-                      }));
+                        categoryType: cat.type, // 🔥 store type
+                      });
                       setIsOpen(false);
                     }}
                   >
@@ -190,7 +167,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             )}
           </div>
 
-          {/* SHOW TYPE */}
+          {/* SHOW TYPE (WAFA STYLE) */}
           {form.categoryType && (
             <div className="mb-3 text-sm font-medium text-purple-600">
               Selected Type: {form.categoryType}
@@ -198,17 +175,24 @@ export default function AddGiftModal({ close, onSuccess }) {
           )}
 
           {/* IMAGE */}
-          <label className="text-sm font-semibold">Gift Image</label>
+          <label className="text-sm font-semibold">
+            Gift Image / Animation
+          </label>
           <input
             type="file"
-            accept="image/*"
+            accept="image/*,video/mp4,application/json"
             required
             onChange={(e) => {
               const file = e.target.files[0];
               if (!file) return;
 
               setImageFile(file);
-              setPreview(URL.createObjectURL(file));
+
+              if (file.type.startsWith("image/")) {
+                setPreview(URL.createObjectURL(file));
+              } else {
+                setPreview(""); // for mp4/lottie no preview here
+              }
             }}
             className="mb-3"
           />
@@ -221,7 +205,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             />
           )}
 
-          {/* TYPE HINTS */}
+          {/* WAFA BEHAVIOR HINT */}
           {form.categoryType === "FRAME" && (
             <p className="text-xs text-blue-600 mb-2">
               This gift will be applied as profile frame
