@@ -1,17 +1,44 @@
+
+
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function AddGiftPage() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [category, setCategory] = useState("");
+  const [categories, setCategories] = useState([]);
   const [file, setFile] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /* ===============================
+     FETCH CATEGORIES
+  =============================== */
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get(
+        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
+      );
+
+      if (res.data?.success) {
+        setCategories(res.data.data);
+      }
+    } catch (error) {
+      console.error("❌ Fetch categories failed:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  /* ===============================
+     SUBMIT
+  =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -27,7 +54,7 @@ export default function AddGiftPage() {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("price", price);
-      formData.append("category", category); // ✅ string
+      formData.append("category", category); // ✅ from select
       if (file) {
         formData.append("icon", file);
       }
@@ -43,7 +70,7 @@ export default function AddGiftPage() {
         }
       );
 
-      alert("Gift created successfully");
+      alert("Gift created successfully ✅");
       window.history.back();
     } catch (err) {
       console.error("❌ Create Gift Error:", err.response?.data || err.message);
@@ -67,7 +94,7 @@ export default function AddGiftPage() {
               placeholder="Enter gift name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border rounded-lg px-3 py-2"
             />
           </div>
 
@@ -79,20 +106,25 @@ export default function AddGiftPage() {
               placeholder="Enter coin cost"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
+              className="w-full border rounded-lg px-3 py-2"
             />
           </div>
 
-          {/* Category */}
+          {/* CATEGORY SELECT */}
           <div>
             <label className="block text-sm font-medium mb-1">Category</label>
-            <input
-              type="text"
-              placeholder="Enter category (e.g. Love, Funny, VIP)"
+            <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-400"
-            />
+              className="w-full border rounded-lg px-3 py-2 bg-white"
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat, index) => (
+                <option key={index} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* File Upload */}
@@ -113,7 +145,7 @@ export default function AddGiftPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-400 text-white py-3 rounded-xl hover:bg-purple-500 transition disabled:opacity-50"
+            className="w-full bg-purple-400 text-white py-3 rounded-xl"
           >
             {loading ? "Adding..." : "Add Gift"}
           </button>
