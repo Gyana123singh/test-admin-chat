@@ -40,7 +40,7 @@ export default function GiftsPage() {
   };
 
   /* ===============================
-     FETCH GIFTS (FILTERABLE)
+     FETCH GIFTS (ALL + FILTER)
   =============================== */
   const fetchGifts = async (category = "ALL") => {
     try {
@@ -48,7 +48,7 @@ export default function GiftsPage() {
 
       const url =
         category === "ALL"
-          ? `${API_BASE}`
+          ? `${API_BASE}/get-all-gifts`
           : `${API_BASE}/get-gift-by-category/${category}`;
 
       const res = await axios.get(url);
@@ -201,9 +201,12 @@ export default function GiftsPage() {
         ))}
       </div>
 
-      {/* MODALS */}
+      {/* MODALS (UNCHANGED PATHS) */}
       {openAdd && (
-        <AddStoreGiftModal close={() => setOpenAdd(false)} onSuccess={fetchGifts} />
+        <AddStoreGiftModal
+          close={() => setOpenAdd(false)}
+          onSuccess={fetchGifts}
+        />
       )}
 
       {openAddCategory && (
