@@ -8,17 +8,28 @@ export default function AddGiftModal({ close, onSuccess }) {
   const [imageFile, setImageFile] = useState(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const [form, setForm] = useState({
     name: "",
-    description: "",
     price: "",
     category: "",
-    animationUrl: "",
-    rarity: "COMMON",
-    effectType: "",
+    categoryType: "",
   });
+
+  /* ===============================
+     CLOSE DROPDOWN ON OUTSIDE CLICK
+  =============================== */
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   /* ===============================
      FETCH CATEGORIES
@@ -29,9 +40,13 @@ export default function AddGiftModal({ close, onSuccess }) {
         const res = await axios.get(
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
-        setCategories(res.data.data || []);
+
+        setCategories(
+          Array.isArray(res.data.categories) ? res.data.categories : []
+        );
       } catch (err) {
-        console.error("❌ Fetch category error:", err);
+        console.error("❌ Category fetch failed", err);
+        setCategories([]);
       }
     };
 
@@ -39,37 +54,20 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, []);
 
   /* ===============================
-     HANDLE INPUT CHANGE
+     CLEANUP IMAGE PREVIEW
   =============================== */
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  useEffect(() => {
+    return () => preview && URL.revokeObjectURL(preview);
+  }, [preview]);
 
   /* ===============================
-     HANDLE IMAGE SELECT
-  =============================== */
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setImageFile(file);
-    setPreview(URL.createObjectURL(file));
-  };
-
-  /* ===============================
-     SUBMIT FORM
+     SUBMIT GIFT
   =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
 
-    if (!form.name || !form.price || !form.category) {
-      setError("Name, price and category are required");
-      return;
-    }
-
-    if (!imageFile) {
-      setError("Gift icon image is required");
+    if (!form.name || !form.price || !form.category || !imageFile) {
+      alert("Name, price, category and image are required");
       return;
     }
 
@@ -78,15 +76,11 @@ export default function AddGiftModal({ close, onSuccess }) {
 
       const formData = new FormData();
       formData.append("name", form.name);
-      formData.append("description", form.description);
       formData.append("price", form.price);
       formData.append("category", form.category);
-      formData.append("animationUrl", form.animationUrl);
-      formData.append("rarity", form.rarity);
-      formData.append("effectType", form.effectType);
-      formData.append("icon", imageFile); // 🔥 MUST MATCH BACKEND
+      formData.append("icon", imageFile); // 🔥 MUST be icon
 
-      const res = await axios.post(
+      await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
         formData,
         {
@@ -97,140 +91,139 @@ export default function AddGiftModal({ close, onSuccess }) {
         }
       );
 
-      onSuccess?.(res.data.data);
+      onSuccess?.();
       close();
-    } catch (err) {
-      console.error("❌ Gift add failed:", err);
-      setError(err.response?.data?.message || "Gift add failed");
+
+      // reset
+      setForm({ name: "", price: "", category: "", categoryType: "" });
+      setImageFile(null);
+      setPreview("");
+    } catch (error) {
+      console.error("❌ Gift add failed:", error);
+      alert(error?.response?.data?.message || "Gift add failed");
     } finally {
       setLoading(false);
     }
   };
 
+  /* ===============================
+     UI
+  =============================== */
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl w-full max-w-md p-6 relative">
+      <div className="bg-white p-6 rounded-xl shadow-md w-[420px]">
         <h2 className="text-xl font-bold mb-4">Add New Gift</h2>
 
-        {error && (
-          <div className="bg-red-100 text-red-600 p-2 rounded mb-3">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit}>
           {/* NAME */}
+          <label className="text-sm font-semibold">Gift Name</label>
           <input
-            type="text"
-            name="name"
-            placeholder="Gift name"
+            className="border p-2 rounded w-full mb-3"
             value={form.name}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-          />
-
-          {/* DESCRIPTION */}
-          <textarea
-            name="description"
-            placeholder="Description"
-            value={form.description}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            required
           />
 
           {/* PRICE */}
+          <label className="text-sm font-semibold">Coin Cost</label>
           <input
             type="number"
-            name="price"
-            placeholder="Price (coins)"
+            className="border p-2 rounded w-full mb-3"
             value={form.price}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
+            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            required
           />
 
-          {/* CATEGORY */}
-          <select
-            name="category"
-            value={form.category}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-          >
-            <option value="">Select category</option>
-            {categories.map((cat) => (
-              <option key={cat._id} value={cat._id}>
-                {cat.name} ({cat.type})
-              </option>
-            ))}
-          </select>
+          {/* CATEGORY DROPDOWN */}
+          <label className="text-sm font-semibold">Category</label>
+          <div className="relative mb-3" ref={dropdownRef}>
+            <div
+              className="border p-2 rounded cursor-pointer bg-white flex justify-between items-center"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {form.category
+                ? categories.find((c) => c._id === form.category)?.type
+                : "Select Category"}
+              <span className="text-xs text-gray-400">▼</span>
+            </div>
 
-          {/* RARITY */}
-          <select
-            name="rarity"
-            value={form.rarity}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-          >
-            <option value="COMMON">COMMON</option>
-            <option value="RARE">RARE</option>
-            <option value="EPIC">EPIC</option>
-            <option value="LEGENDARY">LEGENDARY</option>
-          </select>
+            {isOpen && categories.length > 0 && (
+              <div className="absolute z-50 bg-white border rounded mt-1 max-h-52 overflow-y-auto w-full shadow-md">
+                {categories.map((cat) => (
+                  <div
+                    key={cat._id}
+                    className="p-2 hover:bg-purple-100 cursor-pointer"
+                    onClick={() => {
+                      setForm({
+                        ...form,
+                        category: cat._id,
+                        categoryType: cat.type,
+                      });
+                      setIsOpen(false);
+                    }}
+                  >
+                    <span className="font-medium">{cat.type}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-          {/* EFFECT TYPE */}
-          <input
-            type="text"
-            name="effectType"
-            placeholder="Effect type (optional)"
-            value={form.effectType}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-          />
-
-          {/* ANIMATION URL */}
-          <input
-            type="text"
-            name="animationUrl"
-            placeholder="Animation URL (optional)"
-            value={form.animationUrl}
-            onChange={handleChange}
-            className="w-full border p-2 rounded"
-          />
+          {/* SHOW TYPE */}
+          {form.categoryType && (
+            <div className="mb-3 text-sm font-medium text-purple-600">
+              Selected Type: {form.categoryType}
+            </div>
+          )}
 
           {/* IMAGE */}
+          <label className="text-sm font-semibold">Gift Image</label>
           <input
             type="file"
             accept="image/*"
-            onChange={handleImageChange}
-            className="w-full"
+            required
+            onChange={(e) => {
+              const file = e.target.files[0];
+              if (!file) return;
+
+              setImageFile(file);
+              setPreview(URL.createObjectURL(file));
+            }}
+            className="mb-3"
           />
 
           {preview && (
             <img
               src={preview}
-              alt="preview"
-              className="w-20 h-20 object-cover rounded"
+              alt="Preview"
+              className="w-24 h-24 object-cover border rounded mb-3"
             />
           )}
 
-          {/* BUTTONS */}
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={close}
-              className="px-4 py-2 bg-gray-200 rounded"
-            >
-              Cancel
-            </button>
+          {/* TYPE HINTS (WAFA STYLE) */}
+          {form.categoryType === "FRAME" && (
+            <p className="text-xs text-blue-600 mb-2">
+              This gift will be applied as profile frame
+            </p>
+          )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 text-white rounded"
-            >
-              {loading ? "Adding..." : "Add Gift"}
-            </button>
-          </div>
+          {form.categoryType === "ENTRANCE" && (
+            <p className="text-xs text-green-600 mb-2">
+              This gift will play full screen entrance animation
+            </p>
+          )}
+
+          <button
+            disabled={loading}
+            className="bg-purple-600 text-white w-full py-2 rounded disabled:opacity-50"
+          >
+            {loading ? "Adding..." : "Add Gift"}
+          </button>
         </form>
+
+        <button onClick={close} className="text-red-500 mt-3 w-full">
+          Cancel
+        </button>
       </div>
     </div>
   );
