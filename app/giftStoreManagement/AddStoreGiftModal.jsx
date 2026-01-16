@@ -27,6 +27,7 @@ export default function AddGiftModal({ close, onSuccess }) {
         setIsOpen(false);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -40,6 +41,8 @@ export default function AddGiftModal({ close, onSuccess }) {
         const res = await axios.get(
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
+
+        console.log("CATEGORY RESPONSE:", res.data);
 
         setCategories(
           Array.isArray(res.data.categories) ? res.data.categories : []
@@ -57,7 +60,9 @@ export default function AddGiftModal({ close, onSuccess }) {
      CLEANUP IMAGE PREVIEW
   =============================== */
   useEffect(() => {
-    return () => preview && URL.revokeObjectURL(preview);
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
   }, [preview]);
 
   /* ===============================
@@ -66,7 +71,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // 🔥 HARD VALIDATION (NO MORE UNDEFINED)
+    // 🔥 HARD VALIDATION (NO SILENT FAIL)
     if (!form.name.trim()) {
       alert("Gift name is required");
       return;
@@ -95,6 +100,14 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("price", form.price);
       formData.append("category", form.category);
       formData.append("icon", imageFile);
+
+      console.log("SUBMITTING FORM:", {
+        name: form.name,
+        price: form.price,
+        category: form.category,
+        categoryType: form.categoryType,
+        imageFile,
+      });
 
       await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
@@ -130,6 +143,11 @@ export default function AddGiftModal({ close, onSuccess }) {
   /* ===============================
      UI
   =============================== */
+
+  console.log("DEBUG FORM STATE:", form);
+  console.log("DEBUG IMAGE FILE:", imageFile);
+  console.log("DEBUG LOADING:", loading);
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl shadow-md w-[420px]">
@@ -162,26 +180,27 @@ export default function AddGiftModal({ close, onSuccess }) {
           <div className="relative mb-3" ref={dropdownRef}>
             <div
               className="border p-2 rounded cursor-pointer bg-white flex justify-between items-center"
-              onClick={() => setIsOpen(!isOpen)}
+              onClick={() => setIsOpen((prev) => !prev)}
             >
-              {form.category
-                ? categories.find((c) => c._id === form.category)?.type
-                : "Select Category"}
+              {form.categoryType || "Select Category"}
               <span className="text-xs text-gray-400">▼</span>
             </div>
 
             {isOpen && categories.length > 0 && (
-              <div className="absolute z-50 bg-white border rounded mt-1 max-h-52 overflow-y-auto w-full shadow-md">
+              <div className="absolute z-[9999] bg-white border rounded mt-1 max-h-52 overflow-y-auto w-full shadow-md">
                 {categories.map((cat) => (
                   <div
                     key={cat._id}
                     className="p-2 hover:bg-purple-100 cursor-pointer"
                     onClick={() => {
-                      setForm({
-                        ...form,
-                        category: cat._id,
+                      console.log("SELECTED CATEGORY:", cat);
+
+                      setForm((prev) => ({
+                        ...prev,
+                        category: String(cat._id), // 🔥 FORCE STRING
                         categoryType: cat.type,
-                      });
+                      }));
+
                       setIsOpen(false);
                     }}
                   >
@@ -206,10 +225,15 @@ export default function AddGiftModal({ close, onSuccess }) {
           <input
             type="file"
             accept="image/*,video/mp4,application/json"
-            required
             onChange={(e) => {
-              const file = e.target.files[0];
-              if (!file) return;
+              const file = e.target.files?.[0];
+              console.log("SELECTED FILE:", file);
+
+              if (!file) {
+                setImageFile(null);
+                setPreview("");
+                return;
+              }
 
               setImageFile(file);
 
@@ -220,6 +244,7 @@ export default function AddGiftModal({ close, onSuccess }) {
               }
             }}
             className="mb-3"
+            required
           />
 
           {preview && (
@@ -244,7 +269,8 @@ export default function AddGiftModal({ close, onSuccess }) {
           )}
 
           <button
-            disabled={loading || !form.category}
+            type="submit"
+            disabled={loading || !form.category || !imageFile}
             className="bg-purple-600 text-white w-full py-2 rounded disabled:opacity-50"
           >
             {loading ? "Adding..." : "Add Gift"}
