@@ -15,12 +15,9 @@ export default function AddGiftModal({ close, onSuccess }) {
     name: "",
     price: "",
     category: "",
-    categoryType: "", // 🔥 important (ENTRANCE, FRAME, etc.)
+    categoryType: "",
   });
 
-  /* ===============================
-     CLOSE DROPDOWN ON OUTSIDE CLICK
-  =============================== */
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -31,9 +28,7 @@ export default function AddGiftModal({ close, onSuccess }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  /* ===============================
-     FETCH CATEGORIES (MATCH BACKEND)
-  =============================== */
+  /* FETCH CATEGORIES */
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -41,12 +36,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
 
-        console.log("CATEGORY API RESPONSE:", res.data);
-
-        // ✅ BACKEND RETURNS { success, count, categories }
-        setCategories(
-          Array.isArray(res.data.categories) ? res.data.categories : []
-        );
+        setCategories(Array.isArray(res.data.categories) ? res.data.categories : []);
       } catch (err) {
         console.error("❌ Category fetch failed", err);
         setCategories([]);
@@ -56,16 +46,7 @@ export default function AddGiftModal({ close, onSuccess }) {
     fetchCategories();
   }, []);
 
-  /* ===============================
-     CLEANUP IMAGE PREVIEW
-  =============================== */
-  useEffect(() => {
-    return () => preview && URL.revokeObjectURL(preview);
-  }, [preview]);
-
-  /* ===============================
-     SUBMIT GIFT
-  =============================== */
+  /* SUBMIT */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -81,7 +62,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
-      formData.append("icon", imageFile);
+      formData.append("icon", imageFile); // 🔥 MUST MATCH MULTER
 
       await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
@@ -108,9 +89,6 @@ export default function AddGiftModal({ close, onSuccess }) {
     }
   };
 
-  /* ===============================
-     UI
-  =============================== */
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl shadow-md w-[420px]">
@@ -123,7 +101,6 @@ export default function AddGiftModal({ close, onSuccess }) {
             className="border p-2 rounded w-full mb-3"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
           />
 
           {/* PRICE */}
@@ -133,11 +110,9 @@ export default function AddGiftModal({ close, onSuccess }) {
             className="border p-2 rounded w-full mb-3"
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
-            required
           />
 
-          {/* CATEGORY DROPDOWN */}
-
+          {/* CATEGORY */}
           <label className="text-sm font-semibold">Category</label>
           <div className="relative mb-3" ref={dropdownRef}>
             <div
@@ -160,44 +135,28 @@ export default function AddGiftModal({ close, onSuccess }) {
                       setForm({
                         ...form,
                         category: cat._id,
-                        categoryType: cat.type, // 🔥 store type
+                        categoryType: cat.type,
                       });
                       setIsOpen(false);
                     }}
                   >
-                    <span className="font-medium">{cat.type}</span>
+                    {cat.type}
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* SHOW TYPE (WAFA STYLE) */}
-          {form.categoryType && (
-            <div className="mb-3 text-sm font-medium text-purple-600">
-              Selected Type: {form.categoryType}
-            </div>
-          )}
-
           {/* IMAGE */}
-          <label className="text-sm font-semibold">
-            Gift Image / Animation
-          </label>
+          <label className="text-sm font-semibold">Gift Image</label>
           <input
             type="file"
-            accept="image/*,video/mp4,application/json"
-            required
+            accept="image/*"
             onChange={(e) => {
               const file = e.target.files[0];
               if (!file) return;
-
               setImageFile(file);
-
-              if (file.type.startsWith("image/")) {
-                setPreview(URL.createObjectURL(file));
-              } else {
-                setPreview(""); // for mp4/lottie no preview here
-              }
+              setPreview(URL.createObjectURL(file));
             }}
             className="mb-3"
           />
@@ -208,19 +167,6 @@ export default function AddGiftModal({ close, onSuccess }) {
               alt="Preview"
               className="w-24 h-24 object-cover border rounded mb-3"
             />
-          )}
-
-          {/* WAFA BEHAVIOR HINT */}
-          {form.categoryType === "FRAME" && (
-            <p className="text-xs text-blue-600 mb-2">
-              This gift will be applied as profile frame
-            </p>
-          )}
-
-          {form.categoryType === "ENTRANCE" && (
-            <p className="text-xs text-green-600 mb-2">
-              This gift will play full screen entrance animation
-            </p>
           )}
 
           <button
