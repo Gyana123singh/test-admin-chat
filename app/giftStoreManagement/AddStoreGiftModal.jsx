@@ -18,6 +18,9 @@ export default function AddGiftModal({ close, onSuccess }) {
     categoryType: "",
   });
 
+  /* ===============================
+     CLOSE DROPDOWN ON OUTSIDE CLICK
+  =============================== */
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -28,7 +31,9 @@ export default function AddGiftModal({ close, onSuccess }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  /* FETCH CATEGORIES */
+  /* ===============================
+     FETCH CATEGORIES (FIXED)
+  =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
       try {
@@ -36,9 +41,10 @@ export default function AddGiftModal({ close, onSuccess }) {
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
 
-        setCategories(
-          Array.isArray(res.data.categories) ? res.data.categories : []
-        );
+        console.log("CATEGORY API RESPONSE:", res.data);
+
+        // 🔥 FIXED: backend returns res.data.data
+        setCategories(Array.isArray(res.data.data) ? res.data.data : []);
       } catch (err) {
         console.error("❌ Category fetch failed", err);
         setCategories([]);
@@ -48,11 +54,13 @@ export default function AddGiftModal({ close, onSuccess }) {
     fetchCategories();
   }, []);
 
-  /* SUBMIT */
+  /* ===============================
+     SUBMIT GIFT
+  =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.price || !form.category) {
+    if (!form.name || !form.price || !form.category || !imageFile) {
       alert("All fields are required");
       return;
     }
@@ -64,14 +72,13 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
-      formData.append("icon", imageFile); // 🔥 MUST MATCH MULTER
+      formData.append("icon", imageFile); // MUST MATCH multer.single("icon")
 
       await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
         }
@@ -80,6 +87,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       onSuccess?.();
       close();
 
+      // reset
       setForm({ name: "", price: "", category: "", categoryType: "" });
       setImageFile(null);
       setPreview("");
@@ -91,6 +99,9 @@ export default function AddGiftModal({ close, onSuccess }) {
     }
   };
 
+  /* ===============================
+     UI
+  =============================== */
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl shadow-md w-[420px]">
@@ -114,7 +125,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             onChange={(e) => setForm({ ...form, price: e.target.value })}
           />
 
-          {/* CATEGORY */}
+          {/* CATEGORY DROPDOWN */}
           <label className="text-sm font-semibold">Category</label>
           <div className="relative mb-3" ref={dropdownRef}>
             <div
@@ -148,6 +159,13 @@ export default function AddGiftModal({ close, onSuccess }) {
               </div>
             )}
           </div>
+
+          {/* SHOW SELECTED TYPE */}
+          {form.categoryType && (
+            <p className="text-xs text-purple-600 mb-2">
+              Selected: {form.categoryType}
+            </p>
+          )}
 
           {/* IMAGE */}
           <label className="text-sm font-semibold">Gift Image</label>
