@@ -14,8 +14,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   const [form, setForm] = useState({
     name: "",
     price: "",
-    category: "",
-    categoryType: "", // 🔥 important (ENTRANCE, FRAME, etc.)
+    category: "", // 🔥 important (ENTRANCE, FRAME, etc.)
   });
 
   /* ===============================
@@ -69,7 +68,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.price || !form.category || !imageFile) {
+    if (!form.name || !form.price) {
       alert("All fields are required");
       return;
     }
@@ -97,7 +96,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       onSuccess?.();
       close();
 
-      setForm({ name: "", price: "", category: "", categoryType: "" });
+      setForm({ name: "", price: "", category: "" });
       setImageFile(null);
       setPreview("");
     } catch (error) {
