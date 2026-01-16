@@ -20,7 +20,7 @@ export default function AddGiftPage() {
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
         setCategories(res.data.data || []);
-        console.log("✅ Categories loaded");
+        console.log("✅ Categories loaded", res.data.data);
       } catch (err) {
         console.error("❌ Failed to load categories");
       }
