@@ -10,15 +10,8 @@ import AddCategoryModal from "../giftStoreManagement/AddStoreCategory.jsx";
 
 const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/store-gifts";
 
-const CATEGORY_TYPES = [
-  "ALL",
-  "ENTRANCE",
-  "FRAME",
-  "RING",
-  "BUBBLE",
-  "THEME",
-  "EMOJI",
-];
+// 🔥 Must match DB categories exactly
+const CATEGORY_TYPES = ["ALL", "Love", "Funny", "VIP", "Birthday", "Anime"];
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
@@ -35,20 +28,16 @@ export default function GiftsPage() {
   const [total, setTotal] = useState(0);
 
   /* ===============================
-     FETCH GIFTS BY TYPE
+     FETCH GIFTS BY CATEGORY
   =============================== */
   const fetchGifts = async (categoryId = "ALL", skipValue = 0) => {
     try {
       setLoading(true);
 
       const url =
-        categoryId === "ALL"
-          ? `${API_BASE}/getStoreCategory`
-          : `${API_BASE}/get-gift-by-category/${categoryId}`;
+        categoryId === "ALL" ? `${API_BASE}` : `${API_BASE}/get-gift-by-category/${categoryId}`;
 
-      const res = await axios.get(url, {
-        params: { skip: skipValue, limit },
-      });
+      const res = await axios.get(url);
 
       if (res.data?.success && Array.isArray(res.data.data)) {
         setGifts(
@@ -56,7 +45,7 @@ export default function GiftsPage() {
             ? res.data.data
             : (prev) => [...prev, ...res.data.data]
         );
-        setTotal(res.data.pagination?.total || 0);
+        setTotal(res.data.data.length);
       } else {
         setGifts([]);
         setTotal(0);
@@ -77,21 +66,12 @@ export default function GiftsPage() {
   }, []);
 
   /* ===============================
-     TYPE CHANGE
+     CATEGORY CHANGE
   =============================== */
   const handleTypeChange = (type) => {
     setSelectedType(type);
     setSkip(0);
     fetchGifts(type, 0);
-  };
-
-  /* ===============================
-     LOAD MORE
-  =============================== */
-  const loadMore = () => {
-    const newSkip = skip + limit;
-    setSkip(newSkip);
-    fetchGifts(selectedType, newSkip);
   };
 
   /* ===============================
@@ -121,19 +101,19 @@ export default function GiftsPage() {
             onClick={() => setOpenAddCategory(true)}
             className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
-            <Plus size={18} /> Add Gift Store Category
+            <Plus size={18} /> Add Gift Category
           </button>
 
           <button
             onClick={() => setOpenAdd(true)}
             className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
-            <Plus size={18} /> Add Gift Store
+            <Plus size={18} /> Add Gift
           </button>
         </div>
       </div>
 
-      {/* CATEGORY TYPE FILTER (WAFA STYLE) */}
+      {/* CATEGORY FILTER */}
       <div className="flex gap-3 mb-6 flex-wrap">
         {CATEGORY_TYPES.map((type) => (
           <button
@@ -161,7 +141,11 @@ export default function GiftsPage() {
         {gifts.map((gift) => (
           <div key={gift._id} className="bg-white rounded-xl shadow p-3 border">
             <img
-              src={gift.giftImage || "/placeholder.png"}
+              src={
+                gift.icon
+                  ? `https://chat-app-1-qvl9.onrender.com/${gift.icon}`
+                  : "/placeholder.png"
+              }
               alt={gift.name}
               className="w-full h-28 object-contain rounded mb-2"
             />
@@ -169,7 +153,7 @@ export default function GiftsPage() {
             <h3 className="text-sm font-semibold truncate">{gift.name}</h3>
 
             <p className="text-xs text-gray-600">
-              {gift.category?.type || "Uncategorized"}
+              {gift.category || "Uncategorized"}
             </p>
 
             <p className="text-xs font-semibold text-purple-600">
@@ -197,18 +181,6 @@ export default function GiftsPage() {
           </div>
         ))}
       </div>
-
-      {/* LOAD MORE */}
-      {gifts.length < total && (
-        <div className="flex justify-center mt-6">
-          <button
-            onClick={loadMore}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg"
-          >
-            Load More
-          </button>
-        </div>
-      )}
 
       {/* MODALS */}
       {openAdd && (
