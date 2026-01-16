@@ -6,6 +6,7 @@ import { Plus, Edit, Trash } from "lucide-react";
 
 import AddGiftModal from "../giftStoreManagement/AddStoreGiftModal";
 import EditGiftModal from "../giftsManagement/EditGiftModal";
+import AddCategoryModal from "../giftStoreManagement/AddStoreCategory.jsx";
 
 const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/store-gifts";
 
@@ -21,6 +22,7 @@ const CATEGORY_TYPES = [
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
+  const [openAddCategory, setOpenAddCategory] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
 
   const [selectedGift, setSelectedGift] = useState(null);
@@ -35,22 +37,24 @@ export default function GiftsPage() {
   /* ===============================
      FETCH GIFTS BY TYPE
   =============================== */
-  const fetchGifts = async (categoryType = "ALL", skipValue = 0) => {
+  const fetchGifts = async (categoryId = "ALL", skipValue = 0) => {
     try {
       setLoading(true);
 
       const url =
-        categoryType === "ALL"
+        categoryId === "ALL"
           ? `${API_BASE}/getStoreCategory`
-          : `${API_BASE}/get-gift-by-category/${categoryType}`;
+          : `${API_BASE}/get-gift-by-category/${categoryId}`;
 
       const res = await axios.get(url, {
         params: { skip: skipValue, limit },
       });
 
       if (res.data?.success && Array.isArray(res.data.data)) {
-        setGifts((prev) =>
-          skipValue === 0 ? res.data.data : [...prev, ...res.data.data]
+        setGifts(
+          skipValue === 0
+            ? res.data.data
+            : (prev) => [...prev, ...res.data.data]
         );
         setTotal(res.data.pagination?.total || 0);
       } else {
@@ -114,15 +118,22 @@ export default function GiftsPage() {
 
         <div className="flex gap-3">
           <button
+            onClick={() => setOpenAddCategory(true)}
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+          >
+            <Plus size={18} /> Add Gift Store Category
+          </button>
+
+          <button
             onClick={() => setOpenAdd(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700"
+            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
             <Plus size={18} /> Add Gift Store
           </button>
         </div>
       </div>
 
-      {/* CATEGORY TYPE FILTER */}
+      {/* CATEGORY TYPE FILTER (WAFA STYLE) */}
       <div className="flex gap-3 mb-6 flex-wrap">
         {CATEGORY_TYPES.map((type) => (
           <button
@@ -148,10 +159,7 @@ export default function GiftsPage() {
         )}
 
         {gifts.map((gift) => (
-          <div
-            key={gift._id}
-            className="bg-white rounded-xl shadow p-3 border hover:shadow-lg transition"
-          >
+          <div key={gift._id} className="bg-white rounded-xl shadow p-3 border">
             <img
               src={gift.giftImage || "/placeholder.png"}
               alt={gift.name}
@@ -174,14 +182,14 @@ export default function GiftsPage() {
                   setSelectedGift(gift);
                   setOpenEdit(true);
                 }}
-                className="text-blue-500 hover:text-blue-700"
+                className="text-blue-500"
               >
                 <Edit size={18} />
               </button>
 
               <button
                 onClick={() => handleDelete(gift._id)}
-                className="text-red-500 hover:text-red-700"
+                className="text-red-500"
               >
                 <Trash size={18} />
               </button>
@@ -195,7 +203,7 @@ export default function GiftsPage() {
         <div className="flex justify-center mt-6">
           <button
             onClick={loadMore}
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg"
           >
             Load More
           </button>
@@ -204,17 +212,18 @@ export default function GiftsPage() {
 
       {/* MODALS */}
       {openAdd && (
-        <AddGiftModal
-          close={() => setOpenAdd(false)}
-          onSuccess={() => fetchGifts(selectedType, 0)}
-        />
+        <AddGiftModal close={() => setOpenAdd(false)} onSuccess={fetchGifts} />
+      )}
+
+      {openAddCategory && (
+        <AddCategoryModal close={() => setOpenAddCategory(false)} />
       )}
 
       {openEdit && selectedGift && (
         <EditGiftModal
           gift={selectedGift}
           close={() => setOpenEdit(false)}
-          onSuccess={() => fetchGifts(selectedType, 0)}
+          onSuccess={fetchGifts}
         />
       )}
     </div>
