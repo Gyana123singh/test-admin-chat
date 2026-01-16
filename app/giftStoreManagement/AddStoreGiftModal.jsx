@@ -66,7 +66,19 @@ export default function AddGiftModal({ close, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.price || !form.category || !imageFile) {
+    console.log("DEBUG SUBMIT:", {
+      name: form.name,
+      price: form.price,
+      category: form.category,
+      imageFile,
+    });
+
+    if (
+      form.name.trim() === "" ||
+      form.price === "" ||
+      form.category === "" ||
+      !imageFile
+    ) {
       alert("Name, price, category and image are required");
       return;
     }
@@ -78,7 +90,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("name", form.name);
       formData.append("price", form.price);
       formData.append("category", form.category);
-      formData.append("icon", imageFile); // 🔥 MUST be icon
+      formData.append("icon", imageFile);
 
       await axios.post(
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
@@ -94,7 +106,6 @@ export default function AddGiftModal({ close, onSuccess }) {
       onSuccess?.();
       close();
 
-      // reset
       setForm({ name: "", price: "", category: "", categoryType: "" });
       setImageFile(null);
       setPreview("");
