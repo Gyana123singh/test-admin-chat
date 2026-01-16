@@ -4,14 +4,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Plus, Edit, Trash } from "lucide-react";
 
-import AddGiftModal from "../giftStoreManagement/AddStoreGiftModal";
-import EditGiftModal from "../giftsManagement/EditGiftModal";
-import AddCategoryModal from "../giftStoreManagement/AddStoreCategory.jsx";
+import AddStoreCategoryModal from "../giftStoreManagement/AddStoreCategory.jsx";
+import AddStoreGiftModal from "../giftStoreManagement/AddStoreGiftModal.jsx";
 
 const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/store-gifts";
-
-// 🔥 Must match DB categories exactly
-const CATEGORY_TYPES = ["ALL", "Love", "Funny", "VIP", "Birthday", "Anime"];
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
@@ -20,35 +16,47 @@ export default function GiftsPage() {
 
   const [selectedGift, setSelectedGift] = useState(null);
   const [gifts, setGifts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState([]);
 
   const [selectedType, setSelectedType] = useState("ALL");
-  const [skip, setSkip] = useState(0);
-  const limit = 20;
-  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   /* ===============================
-     FETCH GIFTS BY CATEGORY
+     FETCH CATEGORIES (FROM API)
   =============================== */
-  const fetchGifts = async (categoryId = "ALL", skipValue = 0) => {
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/getStoreCategory`);
+
+      if (res.data?.success && Array.isArray(res.data.categories)) {
+        setCategories(res.data.categories.map((c) => c.type));
+      } else {
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error("❌ Fetch categories failed:", error);
+      setCategories([]);
+    }
+  };
+
+  /* ===============================
+     FETCH GIFTS (FILTERABLE)
+  =============================== */
+  const fetchGifts = async (category = "ALL") => {
     try {
       setLoading(true);
 
       const url =
-        categoryId === "ALL" ? `${API_BASE}` : `${API_BASE}/get-gift-by-category/${categoryId}`;
+        category === "ALL"
+          ? `${API_BASE}`
+          : `${API_BASE}/get-gift-by-category/${category}`;
 
       const res = await axios.get(url);
 
       if (res.data?.success && Array.isArray(res.data.data)) {
-        setGifts(
-          skipValue === 0
-            ? res.data.data
-            : (prev) => [...prev, ...res.data.data]
-        );
-        setTotal(res.data.data.length);
+        setGifts(res.data.data);
       } else {
         setGifts([]);
-        setTotal(0);
       }
     } catch (error) {
       console.error("❌ Fetch gifts failed:", error);
@@ -62,7 +70,8 @@ export default function GiftsPage() {
      INITIAL LOAD
   =============================== */
   useEffect(() => {
-    fetchGifts("ALL", 0);
+    fetchCategories();
+    fetchGifts("ALL");
   }, []);
 
   /* ===============================
@@ -70,8 +79,7 @@ export default function GiftsPage() {
   =============================== */
   const handleTypeChange = (type) => {
     setSelectedType(type);
-    setSkip(0);
-    fetchGifts(type, 0);
+    fetchGifts(type);
   };
 
   /* ===============================
@@ -115,7 +123,18 @@ export default function GiftsPage() {
 
       {/* CATEGORY FILTER */}
       <div className="flex gap-3 mb-6 flex-wrap">
-        {CATEGORY_TYPES.map((type) => (
+        <button
+          onClick={() => handleTypeChange("ALL")}
+          className={`px-4 py-1 rounded-full text-sm font-semibold transition ${
+            selectedType === "ALL"
+              ? "bg-purple-600 text-white"
+              : "bg-white border hover:bg-purple-50"
+          }`}
+        >
+          ALL
+        </button>
+
+        {categories.map((type) => (
           <button
             key={type}
             onClick={() => handleTypeChange(type)}
@@ -184,11 +203,11 @@ export default function GiftsPage() {
 
       {/* MODALS */}
       {openAdd && (
-        <AddGiftModal close={() => setOpenAdd(false)} onSuccess={fetchGifts} />
+        <AddStoreGiftModal close={() => setOpenAdd(false)} onSuccess={fetchGifts} />
       )}
 
       {openAddCategory && (
-        <AddCategoryModal close={() => setOpenAddCategory(false)} />
+        <AddStoreCategoryModal close={() => setOpenAddCategory(false)} />
       )}
 
       {openEdit && selectedGift && (
