@@ -22,7 +22,7 @@ export default function GiftsPage() {
   const [loading, setLoading] = useState(false);
 
   /* ===============================
-     FETCH CATEGORIES (FROM API)
+     FETCH CATEGORIES
   =============================== */
   const fetchCategories = async () => {
     try {
@@ -40,7 +40,7 @@ export default function GiftsPage() {
   };
 
   /* ===============================
-     FETCH GIFTS (ALL + FILTER)
+     FETCH GIFTS
   =============================== */
   const fetchGifts = async (category = "ALL") => {
     try {
@@ -49,7 +49,7 @@ export default function GiftsPage() {
       const url =
         category === "ALL"
           ? `${API_BASE}/get-all-gifts`
-          : `${API_BASE}/get-gift-by-category/${category}`;
+          : `${API_BASE}/get-gift-by-category/${encodeURIComponent(category)}`;
 
       const res = await axios.get(url);
 
@@ -94,7 +94,7 @@ export default function GiftsPage() {
       alert("Gift deleted successfully ✅");
     } catch (error) {
       console.error("❌ Delete gift failed:", error);
-      alert(error?.response?.data?.message || "Failed to delete gift");
+      alert("Failed to delete gift");
     }
   };
 
@@ -125,10 +125,10 @@ export default function GiftsPage() {
       <div className="flex gap-3 mb-6 flex-wrap">
         <button
           onClick={() => handleTypeChange("ALL")}
-          className={`px-4 py-1 rounded-full text-sm font-semibold transition ${
+          className={`px-4 py-1 rounded-full text-sm font-semibold ${
             selectedType === "ALL"
               ? "bg-purple-600 text-white"
-              : "bg-white border hover:bg-purple-50"
+              : "bg-white border"
           }`}
         >
           ALL
@@ -138,10 +138,10 @@ export default function GiftsPage() {
           <button
             key={type}
             onClick={() => handleTypeChange(type)}
-            className={`px-4 py-1 rounded-full text-sm font-semibold transition ${
+            className={`px-4 py-1 rounded-full text-sm font-semibold ${
               selectedType === type
                 ? "bg-purple-600 text-white"
-                : "bg-white border hover:bg-purple-50"
+                : "bg-white border"
             }`}
           >
             {type}
@@ -149,59 +149,42 @@ export default function GiftsPage() {
         ))}
       </div>
 
-      {loading && <p className="text-gray-500">Loading gifts...</p>}
+      {loading && <p>Loading gifts...</p>}
 
       {/* GIFTS GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5">
-        {!loading && gifts.length === 0 && (
-          <p className="text-gray-500">No gifts found.</p>
-        )}
+        {!loading && gifts.length === 0 && <p>No gifts found.</p>}
 
         {gifts.map((gift) => (
-          <div key={gift._id} className="bg-white rounded-xl shadow p-3 border">
+          <div key={gift._id} className="bg-white rounded-xl shadow p-3">
             <img
               src={
                 gift.icon
                   ? `https://chat-app-1-qvl9.onrender.com/${gift.icon}`
                   : "/placeholder.png"
               }
-              alt={gift.name}
-              className="w-full h-28 object-contain rounded mb-2"
+              className="w-full h-28 object-contain mb-2"
             />
 
-            <h3 className="text-sm font-semibold truncate">{gift.name}</h3>
-
-            <p className="text-xs text-gray-600">
-              {gift.category || "Uncategorized"}
-            </p>
-
+            <h3 className="text-sm font-semibold">{gift.name}</h3>
+            <p className="text-xs text-gray-600">{gift.category}</p>
             <p className="text-xs font-semibold text-purple-600">
               {gift.price} coins
             </p>
 
             <div className="flex justify-between mt-3">
-              <button
-                onClick={() => {
-                  setSelectedGift(gift);
-                  setOpenEdit(true);
-                }}
-                className="text-blue-500"
-              >
-                <Edit size={18} />
-              </button>
-
-              <button
+              <Edit size={18} className="text-blue-500 cursor-pointer" />
+              <Trash
+                size={18}
+                className="text-red-500 cursor-pointer"
                 onClick={() => handleDelete(gift._id)}
-                className="text-red-500"
-              >
-                <Trash size={18} />
-              </button>
+              />
             </div>
           </div>
         ))}
       </div>
 
-      {/* MODALS (UNCHANGED PATHS) */}
+      {/* MODALS */}
       {openAdd && (
         <AddStoreGiftModal
           close={() => setOpenAdd(false)}
@@ -211,14 +194,6 @@ export default function GiftsPage() {
 
       {openAddCategory && (
         <AddStoreCategoryModal close={() => setOpenAddCategory(false)} />
-      )}
-
-      {openEdit && selectedGift && (
-        <EditGiftModal
-          gift={selectedGift}
-          close={() => setOpenEdit(false)}
-          onSuccess={fetchGifts}
-        />
       )}
     </div>
   );
