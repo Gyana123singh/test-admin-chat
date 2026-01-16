@@ -19,7 +19,7 @@ export default function AddGiftPage() {
         const res = await axios.get(
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
-        setCategories(res.data.data || []);
+        setCategories(res.data.categories || []);
         console.log("✅ Categories loaded", res.data);
       } catch (err) {
         console.error("❌ Failed to load categories");
