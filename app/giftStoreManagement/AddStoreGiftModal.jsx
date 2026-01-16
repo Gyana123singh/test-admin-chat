@@ -15,7 +15,7 @@ export default function AddGiftModal({ close, onSuccess }) {
     name: "",
     price: "",
     category: "",
-    // 🔥 important (ENTRANCE, FRAME, etc.)
+    categoryType: "",
   });
 
   /* ===============================
@@ -32,7 +32,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, []);
 
   /* ===============================
-     FETCH CATEGORIES (MATCH BACKEND)
+     FETCH CATEGORIES
   =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
@@ -41,9 +41,6 @@ export default function AddGiftModal({ close, onSuccess }) {
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
 
-        console.log("CATEGORY API RESPONSE:", res.data);
-
-        // ✅ BACKEND RETURNS { success, count, categories }
         setCategories(
           Array.isArray(res.data.categories) ? res.data.categories : []
         );
@@ -69,6 +66,27 @@ export default function AddGiftModal({ close, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // 🔥 HARD VALIDATION (NO MORE UNDEFINED)
+    if (!form.name.trim()) {
+      alert("Gift name is required");
+      return;
+    }
+
+    if (!form.price) {
+      alert("Price is required");
+      return;
+    }
+
+    if (!form.category) {
+      alert("Please select a category");
+      return;
+    }
+
+    if (!imageFile) {
+      alert("Please upload gift image or animation");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -92,7 +110,13 @@ export default function AddGiftModal({ close, onSuccess }) {
       onSuccess?.();
       close();
 
-      setForm({ name: "", price: "", category: "", categoryType: "" });
+      // RESET FORM
+      setForm({
+        name: "",
+        price: "",
+        category: "",
+        categoryType: "",
+      });
       setImageFile(null);
       setPreview("");
     } catch (error) {
@@ -118,6 +142,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             className="border p-2 rounded w-full mb-3"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
+            placeholder="Enter gift name"
             required
           />
 
@@ -128,11 +153,11 @@ export default function AddGiftModal({ close, onSuccess }) {
             className="border p-2 rounded w-full mb-3"
             value={form.price}
             onChange={(e) => setForm({ ...form, price: e.target.value })}
+            placeholder="Enter coin cost"
             required
           />
 
           {/* CATEGORY DROPDOWN */}
-
           <label className="text-sm font-semibold">Category</label>
           <div className="relative mb-3" ref={dropdownRef}>
             <div
@@ -155,7 +180,7 @@ export default function AddGiftModal({ close, onSuccess }) {
                       setForm({
                         ...form,
                         category: cat._id,
-                        categoryType: cat.type, // 🔥 store type
+                        categoryType: cat.type,
                       });
                       setIsOpen(false);
                     }}
@@ -167,7 +192,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             )}
           </div>
 
-          {/* SHOW TYPE (WAFA STYLE) */}
+          {/* SHOW TYPE */}
           {form.categoryType && (
             <div className="mb-3 text-sm font-medium text-purple-600">
               Selected Type: {form.categoryType}
@@ -191,7 +216,7 @@ export default function AddGiftModal({ close, onSuccess }) {
               if (file.type.startsWith("image/")) {
                 setPreview(URL.createObjectURL(file));
               } else {
-                setPreview(""); // for mp4/lottie no preview here
+                setPreview("");
               }
             }}
             className="mb-3"
@@ -219,7 +244,7 @@ export default function AddGiftModal({ close, onSuccess }) {
           )}
 
           <button
-            disabled={loading}
+            disabled={loading || !form.category}
             className="bg-purple-600 text-white w-full py-2 rounded disabled:opacity-50"
           >
             {loading ? "Adding..." : "Add Gift"}
