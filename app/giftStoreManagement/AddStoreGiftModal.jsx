@@ -32,7 +32,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   }, []);
 
   /* ===============================
-     FETCH CATEGORIES
+     FETCH CATEGORIES (BULLETPROOF)
   =============================== */
   useEffect(() => {
     const fetchCategories = async () => {
@@ -41,9 +41,8 @@ export default function AddGiftModal({ close, onSuccess }) {
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
 
-        setCategories(
-          Array.isArray(res.data.categories) ? res.data.categories : []
-        );
+        const list = res.data?.categories || res.data?.data || [];
+        setCategories(Array.isArray(list) ? list : []);
       } catch (err) {
         console.error("❌ Category fetch failed", err);
         setCategories([]);
@@ -57,11 +56,13 @@ export default function AddGiftModal({ close, onSuccess }) {
      CLEANUP IMAGE PREVIEW
   =============================== */
   useEffect(() => {
-    return () => preview && URL.revokeObjectURL(preview);
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
   }, [preview]);
 
   /* ===============================
-     SUBMIT GIFT
+     SUBMIT GIFT (NO BUG)
   =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -131,7 +132,9 @@ export default function AddGiftModal({ close, onSuccess }) {
           <input
             className="border p-2 rounded w-full mb-3"
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, name: e.target.value }))
+            }
             required
           />
 
@@ -141,7 +144,9 @@ export default function AddGiftModal({ close, onSuccess }) {
             type="number"
             className="border p-2 rounded w-full mb-3"
             value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, price: e.target.value }))
+            }
             required
           />
 
@@ -165,11 +170,16 @@ export default function AddGiftModal({ close, onSuccess }) {
                     key={cat._id}
                     className="p-2 hover:bg-purple-100 cursor-pointer"
                     onClick={() => {
-                      setForm({
-                        ...form,
+                      if (!cat._id) {
+                        alert("Category ID missing from backend response");
+                        return;
+                      }
+
+                      setForm((prev) => ({
+                        ...prev,
                         category: cat._id,
                         categoryType: cat.type,
-                      });
+                      }));
                       setIsOpen(false);
                     }}
                   >
@@ -211,7 +221,7 @@ export default function AddGiftModal({ close, onSuccess }) {
             />
           )}
 
-          {/* TYPE HINTS (WAFA STYLE) */}
+          {/* TYPE HINTS */}
           {form.categoryType === "FRAME" && (
             <p className="text-xs text-blue-600 mb-2">
               This gift will be applied as profile frame
