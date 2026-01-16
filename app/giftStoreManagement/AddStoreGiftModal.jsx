@@ -12,15 +12,13 @@ export default function AddGiftPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // 🔥 Load categories for dropdown
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await axios.get(
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
-        setCategories(res.data.categories || []);
-        console.log("✅ Categories loaded", res.data);
+        setCategories(res.data.data || []);
       } catch (err) {
         console.error("❌ Failed to load categories");
       }
@@ -29,10 +27,11 @@ export default function AddGiftPage() {
     fetchCategories();
   }, []);
 
-  // 🔥 Submit handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    console.log("SELECTED CATEGORY:", category); // 🔥 DEBUG
 
     if (!name || !price || !category) {
       setError("Name, price and category are required");
@@ -45,9 +44,9 @@ export default function AddGiftPage() {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("price", price);
-      formData.append("category", category); // 🔥 must be ObjectId
+      formData.append("category", category); // 🔥 MUST be ObjectId
       if (file) {
-        formData.append("icon", file); // 🔥 must match multer field name
+        formData.append("icon", file);
       }
 
       await axios.post(
@@ -63,7 +62,7 @@ export default function AddGiftPage() {
       alert("Gift created successfully");
       window.history.back();
     } catch (err) {
-      console.error("❌ Create Gift Error:", err);
+      console.error("❌ Create Gift Error:", err.response?.data || err.message);
       setError(err.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
@@ -84,7 +83,7 @@ export default function AddGiftPage() {
               placeholder="Enter gift name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border rounded-lg px-3 py-2"
             />
           </div>
 
@@ -96,7 +95,7 @@ export default function AddGiftPage() {
               placeholder="Enter coin cost"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border rounded-lg px-3 py-2"
             />
           </div>
 
@@ -106,7 +105,7 @@ export default function AddGiftPage() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border rounded-lg px-3 py-2"
             >
               <option value="">Select Category</option>
               {categories.map((cat) => (
@@ -130,18 +129,16 @@ export default function AddGiftPage() {
             />
           </div>
 
-          {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
-          {/* Add Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-400 hover:bg-purple-500 text-white py-3 rounded-xl text-lg font-semibold transition disabled:opacity-60"
+            className="w-full bg-purple-400 text-white py-3 rounded-xl"
           >
             {loading ? "Adding..." : "Add Gift"}
           </button>
 
-          {/* Cancel */}
           <button
             type="button"
             onClick={() => window.history.back()}
