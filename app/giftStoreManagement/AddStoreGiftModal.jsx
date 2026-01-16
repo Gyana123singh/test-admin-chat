@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,7 +14,7 @@ export default function AddGiftPage() {
   const [error, setError] = useState("");
 
   /* ===============================
-     FETCH CATEGORIES
+     FETCH CATEGORIES (FIXED)
   =============================== */
   const fetchCategories = async () => {
     try {
@@ -24,11 +22,14 @@ export default function AddGiftPage() {
         "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
       );
 
-      if (res.data?.success) {
-        setCategories(res.data.data);
+      if (res.data?.success && Array.isArray(res.data.categories)) {
+        setCategories(res.data.categories);
+      } else {
+        setCategories([]);
       }
     } catch (error) {
       console.error("❌ Fetch categories failed:", error);
+      setCategories([]); // prevent crash
     }
   };
 
@@ -54,7 +55,7 @@ export default function AddGiftPage() {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("price", price);
-      formData.append("category", category); // ✅ from select
+      formData.append("category", category); // ✅ string
       if (file) {
         formData.append("icon", file);
       }
@@ -110,7 +111,7 @@ export default function AddGiftPage() {
             />
           </div>
 
-          {/* CATEGORY SELECT */}
+          {/* CATEGORY SELECT (FIXED) */}
           <div>
             <label className="block text-sm font-medium mb-1">Category</label>
             <select
@@ -119,9 +120,10 @@ export default function AddGiftPage() {
               className="w-full border rounded-lg px-3 py-2 bg-white"
             >
               <option value="">Select Category</option>
+
               {categories.map((cat, index) => (
-                <option key={index} value={cat}>
-                  {cat}
+                <option key={index} value={cat.type}>
+                  {cat.type}
                 </option>
               ))}
             </select>
