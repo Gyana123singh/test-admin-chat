@@ -21,7 +21,6 @@ const CATEGORY_TYPES = [
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
-  const [openAddCategory, setOpenAddCategory] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
 
   const [selectedGift, setSelectedGift] = useState(null);
@@ -114,13 +113,6 @@ export default function GiftsPage() {
         <h1 className="text-3xl font-bold">🎁 Gifts Management</h1>
 
         <div className="flex gap-3">
-          <button
-            onClick={() => setOpenAddCategory(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700"
-          >
-            <Plus size={18} /> Add Gift Store Category
-          </button>
-
           <button
             onClick={() => setOpenAdd(true)}
             className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-purple-700"
@@ -216,10 +208,6 @@ export default function GiftsPage() {
           close={() => setOpenAdd(false)}
           onSuccess={() => fetchGifts(selectedType, 0)}
         />
-      )}
-
-      {openAddCategory && (
-        <AddCategoryModal close={() => setOpenAddCategory(false)} />
       )}
 
       {openEdit && selectedGift && (

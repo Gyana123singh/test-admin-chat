@@ -36,7 +36,9 @@ export default function AddGiftModal({ close, onSuccess }) {
           "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
         );
 
-        setCategories(Array.isArray(res.data.categories) ? res.data.categories : []);
+        setCategories(
+          Array.isArray(res.data.categories) ? res.data.categories : []
+        );
       } catch (err) {
         console.error("❌ Category fetch failed", err);
         setCategories([]);
@@ -50,7 +52,7 @@ export default function AddGiftModal({ close, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.name || !form.price || !form.category || !imageFile) {
+    if (!form.name || !form.price || !form.category) {
       alert("All fields are required");
       return;
     }
