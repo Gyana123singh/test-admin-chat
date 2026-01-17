@@ -8,6 +8,7 @@ import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
 import AddFriend from "@/app/components/AddFriend";
 import RechargePage from "@/app/recharge/page";
+import MusicPlayer from "../musicPlayer";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "https://chat-app-1-qvl9.onrender.com";
@@ -72,7 +73,7 @@ export default function RoomPage() {
       try {
         const res = await axios.get(
           `https://chat-app-1-qvl9.onrender.com/api/rooms/${roomId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: { Authorization: `Bearer ${token}` } },
         );
         setRoom(res.data.room);
       } catch (err) {
@@ -92,12 +93,12 @@ export default function RoomPage() {
     if (isInitiator === null && currentUser) {
       isInitiator = currentUser.id < peerId;
       console.log(
-        `📍 Auto-determined initiator: ${isInitiator} (${currentUser.id} vs ${peerId})`
+        `📍 Auto-determined initiator: ${isInitiator} (${currentUser.id} vs ${peerId})`,
       );
     }
 
     console.log(
-      `🔗 Creating peer connection to ${peerId}, initiator: ${isInitiator}`
+      `🔗 Creating peer connection to ${peerId}, initiator: ${isInitiator}`,
     );
 
     const pc = new RTCPeerConnection(ICE_SERVERS);
@@ -131,7 +132,7 @@ export default function RoomPage() {
               })
               .catch((error) => {
                 console.warn(
-                  `⚠️ Autoplay blocked: ${error.message}. User can click play.`
+                  `⚠️ Autoplay blocked: ${error.message}. User can click play.`,
                 );
               });
           }
@@ -246,7 +247,7 @@ export default function RoomPage() {
         console.log(`✅ Answer description set for ${from}`);
       } else {
         console.warn(
-          `⚠️ Cannot accept answer - signaling state is ${pc.signalingState}`
+          `⚠️ Cannot accept answer - signaling state is ${pc.signalingState}`,
         );
       }
     } catch (err) {
@@ -276,7 +277,7 @@ export default function RoomPage() {
         }
       } else {
         console.warn(
-          `⚠️ Ignoring ICE - signaling state is ${pc.signalingState}`
+          `⚠️ Ignoring ICE - signaling state is ${pc.signalingState}`,
         );
       }
     } catch (err) {
@@ -361,7 +362,7 @@ export default function RoomPage() {
       const joinRes = await axios.post(
         `https://chat-app-1-qvl9.onrender.com/api/rooms/${roomId}/join`,
         {},
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       console.log("✅ HTTP join successful");
       <RechargePage />;
@@ -416,7 +417,7 @@ export default function RoomPage() {
         console.log("👤 New user joined:", user.username);
         if (user.id !== currentUser.id) {
           setParticipants((prev) =>
-            prev.some((u) => u.id === user.id) ? prev : [...prev, user]
+            prev.some((u) => u.id === user.id) ? prev : [...prev, user],
           );
           console.log(`🤝 Creating peer connection to ${user.username}`);
           createPeerConnection(user.id);
@@ -469,7 +470,9 @@ export default function RoomPage() {
     socket.on("message:edited", (updatedMessage) => {
       console.log("✏️ Message edited:", updatedMessage);
       setMessages((prev) =>
-        prev.map((msg) => (msg.id === updatedMessage.id ? updatedMessage : msg))
+        prev.map((msg) =>
+          msg.id === updatedMessage.id ? updatedMessage : msg,
+        ),
       );
     });
 
@@ -485,7 +488,7 @@ export default function RoomPage() {
         if (userId !== currentUser.id) {
           setTypingUsers(typingUsers.filter((uid) => uid !== currentUser.id));
         }
-      }
+      },
     );
 
     console.log("✅ All listeners registered");
@@ -682,7 +685,14 @@ export default function RoomPage() {
           )}
         </div>
       )}
-
+      {/* 🎵 MUSIC PLAYER */}
+      {joined && socketRef.current && currentUser && (
+        <MusicPlayer
+          roomId={roomId}
+          socket={socketRef.current}
+          currentUser={currentUser}
+        />
+      )}
       {/* ✅ MESSAGE INPUT */}
       {joined && (
         <div className="p-3 border-t border-gray-700 bg-black/80">
