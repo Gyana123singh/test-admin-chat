@@ -46,6 +46,12 @@ export default function RoomPage() {
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
+  // 🎬 VIDEO STATES
+  const videoRef = useRef(null);
+  const [videoUrl, setVideoUrl] = useState(null);
+  const [videoVisible, setVideoVisible] = useState(false);
+  const [isHost, setIsHost] = useState(false);
+
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
@@ -83,6 +89,125 @@ export default function RoomPage() {
     })();
   }, [roomId, token]);
 
+  useEffect(() => {
+    if (!room || !currentUser) return;
+
+    if (room.hostId === currentUser.id) {
+      setIsHost(true);
+    }
+  }, [room, currentUser]);
+
+  /* ================= VIDEO UPLOAD ================= */
+  const uploadVideo = async (file) => {
+    if (!file) return;
+
+    const form = new FormData();
+    form.append("video", file);
+    form.append("userId", currentUser.id);
+
+    await axios.post(
+      `https://chat-app-1-qvl9.onrender.com/api/video/upload/${roomId}`,
+      form,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+
+    alert("Video uploaded");
+  };
+
+  /* ================= VIDEO CONTROLS ================= */
+  const playVideo = async () => {
+    await axios.post(
+      `https://chat-app-1-qvl9.onrender.com/api/video/play/${roomId}`,
+      { userId: currentUser.id },
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+  };
+
+  const pauseVideo = async () => {
+    await axios.post(
+      `https://chat-app-1-qvl9.onrender.com/api/video/pause/${roomId}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+  };
+
+  const resumeVideo = async () => {
+    await axios.post(
+      `https://chat-app-1-qvl9.onrender.com/api/video/resume/${roomId}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+  };
+
+  /* ================= SOCKET VIDEO SYNC ================= */
+  useEffect(() => {
+    if (!socketRef.current || !joined) return;
+
+    const socket = socketRef.current;
+    socket.on("video:play", ({ videoUrl, currentTime }) => {
+      setVideoUrl(`https://chat-app-1-qvl9.onrender.com${videoUrl}`);
+      setVideoVisible(true);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.muted = false; // ✅ HERE
+          videoRef.current.currentTime = currentTime;
+          videoRef.current.play().catch(() => {});
+        }
+      }, 300);
+    });
+
+    socket.on("video:paused", ({ currentTime }) => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = currentTime;
+        videoRef.current.pause();
+      }
+    });
+
+    socket.on("video:resumed", ({ currentTime }) => {
+      if (videoRef.current) {
+        videoRef.current.muted = false; // ✅ HERE
+        videoRef.current.currentTime = currentTime;
+        videoRef.current.play();
+      }
+    });
+
+    socket.on("video:stopped", () => {
+      setVideoVisible(false);
+      setVideoUrl(null);
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+    });
+
+    socket.on("room:videoState", ({ video }) => {
+      if (!video?.fileName || !video.isVisible) return;
+
+      const url = `https://chat-app-1-qvl9.onrender.com/video-stream/${roomId}/${video.fileName}`;
+
+      setVideoUrl(url);
+      setVideoVisible(true);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.muted = false; // ✅ HERE
+          videoRef.current.currentTime = video.currentTime || 0;
+
+          if (video.isPlaying) {
+            videoRef.current.play().catch(() => {});
+          }
+        }
+      }, 300);
+    });
+
+    return () => {
+      socket.off("video:play");
+      socket.off("video:paused");
+      socket.off("video:resumed");
+      socket.off("video:stopped");
+      socket.off("room:videoState");
+    };
+  }, [joined]);
   /* ================= CREATE PEER CONNECTION ================= */
   const createPeerConnection = async (peerId, isInitiator = null) => {
     if (peerConnectionsRef.current.has(peerId)) {
@@ -685,6 +810,53 @@ export default function RoomPage() {
           )}
         </div>
       )}
+
+      {/* 🎬 VIDEO PLAYER */}
+      {videoVisible && (
+        <div className="w-full bg-black p-3 flex justify-center">
+          <video
+            ref={videoRef}
+            src={videoUrl}
+            controls
+            playsInline
+            muted={false}
+            className="max-w-full rounded-lg"
+          />
+        </div>
+      )}
+
+      {/* 🎬 VIDEO CONTROLS */}
+      {joined && (
+        <div className="p-3 flex gap-2 bg-gray-900">
+          <input
+            type="file"
+            accept="video/*"
+            onChange={(e) => uploadVideo(e.target.files[0])}
+          />
+
+          <button
+            onClick={playVideo}
+            className="bg-green-600 px-3 py-1 rounded"
+          >
+            Play
+          </button>
+
+          <button
+            onClick={pauseVideo}
+            className="bg-yellow-600 px-3 py-1 rounded"
+          >
+            Pause
+          </button>
+
+          <button
+            onClick={resumeVideo}
+            className="bg-blue-600 px-3 py-1 rounded"
+          >
+            Resume
+          </button>
+        </div>
+      )}
+
       {/* 🎵 MUSIC PLAYER */}
       {joined && socketRef.current && currentUser && (
         <MusicPlayer
