@@ -15,7 +15,7 @@ export default function AddFriend({
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
 
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun/";
 
   const handleSendRequest = async () => {
     if (!friendId || !friendId.trim()) {

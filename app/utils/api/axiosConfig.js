@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instanceApi = axios.create({
-  baseURL: "https://chat-app-1-qvl9.onrender.com",
+  baseURL: "https://api.dilvoicechat.fun",
   headers: {
     "Content-Type": "application/json",
   },

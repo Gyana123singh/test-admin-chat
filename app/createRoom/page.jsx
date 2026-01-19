@@ -23,7 +23,7 @@ export default function CreateRoomPage() {
       }
 
       const res = await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/api/rooms/create",
+        "https://api.dilvoicechat.fun/api/rooms/create",
         { mode: activeTab },
         {
           headers: {

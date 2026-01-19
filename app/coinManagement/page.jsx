@@ -21,7 +21,7 @@ export default function CoinManagement() {
     const fetchRechargePlans = async () => {
       try {
         const res = await axios.get(
-          "https://chat-app-1-qvl9.onrender.com/api/get-recharge-plans"
+          "https://api.dilvoicechat.fun/api/get-recharge-plans"
         );
 
         if (res.data?.success) {
@@ -47,7 +47,7 @@ export default function CoinManagement() {
     const fetchCoinMapping = async () => {
       try {
         const res = await axios.get(
-          "https://chat-app-1-qvl9.onrender.com/api/get-coin-mapping"
+          "https://api.dilvoicechat.fun/api/get-coin-mapping"
         );
 
         if (res.data?.rate) {
@@ -68,7 +68,7 @@ export default function CoinManagement() {
     if (!coinRate) return alert("Please enter coin rate");
 
     try {
-      const res = await axios.post("https://chat-app-1-qvl9.onrender.com/api/coin-mapping", {
+      const res = await axios.post("https://api.dilvoicechat.fun/api/coin-mapping", {
         rate: Number(coinRate),
       });
 
@@ -84,7 +84,7 @@ export default function CoinManagement() {
 
     try {
       await axios.delete(
-        `https://chat-app-1-qvl9.onrender.com/api/delete-recharge-plan/${id}`
+        `https://api.dilvoicechat.fun/api/delete-recharge-plan/${id}`
       );
 
       // Remove from UI instantly

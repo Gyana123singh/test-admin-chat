@@ -7,7 +7,7 @@ import { Plus, Edit, Trash } from "lucide-react";
 import AddStoreCategoryModal from "../giftStoreManagement/AddStoreCategory.jsx";
 import AddStoreGiftModal from "../giftStoreManagement/AddStoreGiftModal.jsx";
 
-const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/store-gifts";
+const API_BASE = "https://api.dilvoicechat.fun/api/store-gifts";
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
@@ -160,7 +160,7 @@ export default function GiftsPage() {
             <img
               src={
                 gift.icon
-                  ? `https://chat-app-1-qvl9.onrender.com/${gift.icon}`
+                  ? `https://api.dilvoicechat.fun/${gift.icon}`
                   : "/placeholder.png"
               }
               className="w-full h-28 object-contain mb-2"

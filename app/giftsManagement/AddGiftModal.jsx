@@ -38,7 +38,7 @@ export default function AddGiftModal({ close, onSuccess }) {
     const fetchCategories = async () => {
       try {
         const res = await axios.get(
-          "https://chat-app-1-qvl9.onrender.com/api/gift/getCategory"
+          "https://api.dilvoicechat.fun/api/gift/getCategory"
         );
         setCategories(res.data.categories || []);
       } catch (err) {
@@ -76,7 +76,7 @@ export default function AddGiftModal({ close, onSuccess }) {
       formData.append("icon", imageFile); // multer.single("icon")
 
       await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
+        "https://api.dilvoicechat.fun/api/store-gifts/create",
         formData,
         {
           headers: {

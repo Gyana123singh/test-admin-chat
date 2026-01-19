@@ -11,7 +11,7 @@ import RechargePage from "@/app/recharge/page";
 import MusicPlayer from "../musicPlayer";
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL || "https://chat-app-1-qvl9.onrender.com";
+  process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.dilvoicechat.fun";
 
 const ICE_SERVERS = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -78,7 +78,7 @@ export default function RoomPage() {
     (async () => {
       try {
         const res = await axios.get(
-          `https://chat-app-1-qvl9.onrender.com/api/rooms/${roomId}`,
+          `https://api.dilvoicechat.fun/api/rooms/${roomId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setRoom(res.data.room);
@@ -106,7 +106,7 @@ export default function RoomPage() {
     form.append("userId", currentUser.id);
 
     await axios.post(
-      `https://chat-app-1-qvl9.onrender.com/api/video/upload/${roomId}`,
+      `https://api.dilvoicechat.fun/api/video/upload/${roomId}`,
       form,
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -117,7 +117,7 @@ export default function RoomPage() {
   /* ================= VIDEO CONTROLS ================= */
   const playVideo = async () => {
     await axios.post(
-      `https://chat-app-1-qvl9.onrender.com/api/video/play/${roomId}`,
+      `https://api.dilvoicechat.fun/api/video/play/${roomId}`,
       { userId: currentUser.id },
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -125,7 +125,7 @@ export default function RoomPage() {
 
   const pauseVideo = async () => {
     await axios.post(
-      `https://chat-app-1-qvl9.onrender.com/api/video/pause/${roomId}`,
+      `https://api.dilvoicechat.fun/api/video/pause/${roomId}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -133,7 +133,7 @@ export default function RoomPage() {
 
   const resumeVideo = async () => {
     await axios.post(
-      `https://chat-app-1-qvl9.onrender.com/api/video/resume/${roomId}`,
+      `https://api.dilvoicechat.fun/api/video/resume/${roomId}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -145,7 +145,7 @@ export default function RoomPage() {
 
     const socket = socketRef.current;
     socket.on("video:play", ({ videoUrl, currentTime }) => {
-      setVideoUrl(`https://chat-app-1-qvl9.onrender.com${videoUrl}`);
+      setVideoUrl(`https://api.dilvoicechat.fun${videoUrl}`);
       setVideoVisible(true);
 
       setTimeout(() => {
@@ -183,7 +183,7 @@ export default function RoomPage() {
     socket.on("room:videoState", ({ video }) => {
       if (!video?.fileName || !video.isVisible) return;
 
-      const url = `https://chat-app-1-qvl9.onrender.com/video-stream/${roomId}/${video.fileName}`;
+      const url = `https://api.dilvoicechat.fun/video-stream/${roomId}/${video.fileName}`;
 
       setVideoUrl(url);
       setVideoVisible(true);
@@ -485,7 +485,7 @@ export default function RoomPage() {
       setMicOn(true);
 
       const joinRes = await axios.post(
-        `https://chat-app-1-qvl9.onrender.com/api/rooms/${roomId}/join`,
+        `https://api.dilvoicechat.fun/api/rooms/${roomId}/join`,
         {},
         { headers: { Authorization: `Bearer ${token}` } },
       );

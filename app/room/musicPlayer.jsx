@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 
-const API = "https://chat-app-1-qvl9.onrender.com";
+const API = "https://api.dilvoicechat.fun";
 
 export default function MusicPlayer({ roomId, socket, currentUser }) {
   const audioRef = useRef(null);

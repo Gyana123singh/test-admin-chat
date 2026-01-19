@@ -26,7 +26,7 @@ let socket = null;
 
 export const getSocket = (token) => {
   if (!socket && token) {
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.dilvoicechat.fun";
 
     socket = io(socketUrl, {
       auth: {

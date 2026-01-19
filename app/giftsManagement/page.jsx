@@ -23,7 +23,7 @@ export default function GiftsPage() {
       setLoading(true);
 
       const res = await axios.get(
-        "https://chat-app-1-qvl9.onrender.com/api/gift/getAllGift"
+        "https://api.dilvoicechat.fun/api/gift/getAllGift"
       );
 
       if (res.data?.success && Array.isArray(res.data.gifts)) {

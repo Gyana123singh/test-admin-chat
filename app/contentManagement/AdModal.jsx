@@ -37,7 +37,7 @@ export default function AdModal({ onClose }) {
       formData.append("redirectLink", redirectLink);
 
       await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/api/promotion/create-ads",
+        "https://api.dilvoicechat.fun/api/promotion/create-ads",
         formData,
         {
           headers: {

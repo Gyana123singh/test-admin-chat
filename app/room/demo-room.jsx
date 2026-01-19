@@ -8,7 +8,7 @@ import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL || "https://chat-app-1-qvl9.onrender.com";
+  process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.dilvoicechat.fun";
 
 const ICE_SERVERS = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
@@ -57,7 +57,7 @@ export default function RoomPage() {
     (async () => {
       try {
         const res = await axios.get(
-          `https://chat-app-1-qvl9.onrender.com/api/rooms/${roomId}`,
+          `https://api.dilvoicechat.fun/api/rooms/${roomId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setRoom(res.data.room);
@@ -289,7 +289,7 @@ export default function RoomPage() {
       setMicOn(true);
 
       const joinRes = await axios.post(
-        `https://chat-app-1-qvl9.onrender.com/api/rooms/${roomId}/join`,
+        `https://api.dilvoicechat.fun/api/rooms/${roomId}/join`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
