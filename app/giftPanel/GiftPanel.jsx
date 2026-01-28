@@ -8,7 +8,9 @@ export default function GiftPanel({
   roomId,
   socket,
   currentUser,
-  micUsers = [],
+  selectedUser, // ✅ TARGET USER
+  roomUsers = [], // [{id, username}]
+  micUsers = [], // [userId]
   micStatus = {},
 }) {
   const [gifts, setGifts] = useState([]);
@@ -27,7 +29,7 @@ export default function GiftPanel({
   useEffect(() => {
     axios
       .get("https://api.dilvoicechat.fun/api/gift/getAllGift")
-      .then((res) => setGifts(res.data.gifts))
+      .then((res) => setGifts(res.data.gifts || []))
       .catch(() => {});
   }, []);
 
@@ -37,19 +39,39 @@ export default function GiftPanel({
   const sendGift = async () => {
     if (!selectedGift) return alert("Select a gift");
 
+    // 🔥 VALIDATION
+    if (sendType === "individual" && !selectedUser) {
+      return alert("Select a user to send gift");
+    }
+
     try {
       setLoading(true);
 
+      const payload = {
+        roomId,
+        giftId: selectedGift._id,
+        sendType,
+      };
+
+      // ✅ INDIVIDUAL
+      if (sendType === "individual") {
+        payload.recipients = [selectedUser.id];
+      }
+
+      // ✅ ALL IN ROOM
+      if (sendType === "all_in_room") {
+        payload.micOnlineUsers = roomUsers.map((u) => u.id);
+      }
+
+      // ✅ ALL ON MIC
+      if (sendType === "all_on_mic") {
+        payload.micOnlineUsers = micUsers; // must be [userId]
+        payload.micStatus = micStatus;
+      }
+
       await axios.post(
         "https://api.dilvoicechat.fun/api/gift/sendGift",
-        {
-          roomId,
-          giftId: selectedGift._id,
-          sendType,
-          recipients: sendType === "individual" ? [currentUser.id] : [],
-          micOnlineUsers: micUsers,
-          micStatus,
-        },
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -67,7 +89,7 @@ export default function GiftPanel({
 
   return (
     <div className="bg-gray-900 border-t border-gray-700 p-3">
-      {/* GIFT LIST */}
+      {/* 🎁 GIFTS */}
       <div className="grid grid-cols-4 gap-3">
         {gifts.map((gift) => (
           <button
@@ -91,7 +113,7 @@ export default function GiftPanel({
         ))}
       </div>
 
-      {/* SEND TYPE */}
+      {/* 🎯 SEND TYPE */}
       <div className="flex gap-2 mt-3">
         {["individual", "all_in_room", "all_on_mic"].map((type) => (
           <button
@@ -108,7 +130,7 @@ export default function GiftPanel({
         ))}
       </div>
 
-      {/* SEND BUTTON */}
+      {/* 🚀 SEND */}
       <button
         onClick={sendGift}
         disabled={loading}
