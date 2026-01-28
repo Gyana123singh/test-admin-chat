@@ -9,6 +9,7 @@ import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
 import AddFriend from "@/app/components/AddFriend";
 import RechargePage from "@/app/recharge/page";
 import MusicPlayer from "../musicPlayer";
+import GiftPanel from "@/app/giftPanel/GiftPanel";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.dilvoicechat.fun";
