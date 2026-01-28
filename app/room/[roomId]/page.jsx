@@ -55,6 +55,42 @@ export default function RoomPage() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
+  // 🎁 GIFT ANIMATION FUNCTION
+  const showGiftAnimation = (icon) => {
+    const img = document.createElement("img");
+    img.src = icon;
+
+    img.style.position = "fixed";
+    img.style.bottom = "80px";
+    img.style.left = "50%";
+    img.style.transform = "translateX(-50%)";
+    img.style.width = "90px";
+    img.style.zIndex = "9999";
+    img.style.pointerEvents = "none";
+    img.style.animation = "giftFly 2s ease-out forwards";
+
+    document.body.appendChild(img);
+
+    setTimeout(() => {
+      img.remove();
+    }, 2000);
+  };
+
+  useEffect(() => {
+    if (!socketRef.current || !joined) return;
+
+    socketRef.current.on("gift:received", (data) => {
+      console.log("🎁 Gift animation:", data);
+
+      // 🔥 SHOW ANIMATION
+      showGiftAnimation(data.giftIcon);
+    });
+
+    return () => {
+      socketRef.current.off("gift:received");
+    };
+  }, [joined]);
+
   /* ================= DECODE TOKEN ================= */
   useEffect(() => {
     if (!token) return;
@@ -865,6 +901,17 @@ export default function RoomPage() {
           currentUser={currentUser}
         />
       )}
+
+      {joined && (
+        <GiftPanel
+          roomId={roomId}
+          socket={socketRef.current}
+          currentUser={currentUser}
+          micUsers={participants.map((u) => u.id)}
+          micStatus={{}} // later you can sync mic state
+        />
+      )}
+
       {/* ✅ MESSAGE INPUT */}
       {joined && (
         <div className="p-3 border-t border-gray-700 bg-black/80">
