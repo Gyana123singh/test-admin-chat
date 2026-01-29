@@ -52,43 +52,35 @@ export default function RoomPage() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoVisible, setVideoVisible] = useState(false);
   const [isHost, setIsHost] = useState(false);
+  const [micStatus, setMicStatus] = useState({});
+  const [giftQueue, setGiftQueue] = useState([]);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
-  // 🎁 GIFT ANIMATION FUNCTION
-  const showGiftAnimation = (icon) => {
-    const img = document.createElement("img");
-    img.src = icon;
-
-    img.style.position = "fixed";
-    img.style.bottom = "80px";
-    img.style.left = "50%";
-    img.style.transform = "translateX(-50%)";
-    img.style.width = "90px";
-    img.style.zIndex = "9999";
-    img.style.pointerEvents = "none";
-    img.style.animation = "giftFly 2s ease-out forwards";
-
-    document.body.appendChild(img);
-
-    setTimeout(() => {
-      img.remove();
-    }, 2000);
-  };
-
   useEffect(() => {
     if (!socketRef.current || !joined) return;
 
-    socketRef.current.on("gift:received", (data) => {
-      console.log("🎁 Gift animation:", data);
+    const socket = socketRef.current;
 
-      // 🔥 SHOW ANIMATION
-      showGiftAnimation(data.giftIcon);
+    socket.on("gift:received", (data) => {
+      setGiftQueue((prev) => [...prev, data]);
+
+      setTimeout(() => {
+        setGiftQueue((prev) => prev.slice(1));
+      }, 2200);
+    });
+
+    socket.on("mic:update", ({ userId, muted, speaking }) => {
+      setMicStatus((prev) => ({
+        ...prev,
+        [userId]: { muted, speaking },
+      }));
     });
 
     return () => {
-      socketRef.current.off("gift:received");
+      socket.off("gift:received");
+      socket.off("mic:update");
     };
   }, [joined]);
 
@@ -716,6 +708,23 @@ export default function RoomPage() {
         style={{ display: "none" }}
       />
 
+      {/* 🎁 GIFT FLOATING ANIMATION */}
+      {giftQueue.map((gift, index) => (
+        <div
+          key={index}
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-gift"
+        >
+          <img
+            src={gift.giftIcon}
+            alt={gift.giftName}
+            className="w-24 mx-auto"
+          />
+          <p className="text-center text-sm text-white mt-1">
+            {gift.senderUsername} sent {gift.giftName}
+          </p>
+        </div>
+      ))}
+
       {error && (
         <div className="bg-red-500 p-3 text-sm text-center sticky top-0 z-50">
           {error}
@@ -909,7 +918,8 @@ export default function RoomPage() {
           socket={socketRef.current}
           currentUser={currentUser}
           micUsers={participants.map((u) => u.id)}
-          micStatus={{}} // later you can sync mic state
+          micStatus={micStatus}
+          roomUsers={participants}
         />
       )}
 
