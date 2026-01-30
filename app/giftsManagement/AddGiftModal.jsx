@@ -65,7 +65,7 @@ export default function AddGiftPage() {
         formData,
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
             "Content-Type": "multipart/form-data",
           },
         }

@@ -26,7 +26,7 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
         { type }, // 🔥 send enum type
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
           },
         },
       );
