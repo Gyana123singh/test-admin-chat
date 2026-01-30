@@ -2,15 +2,7 @@
 import axios from "axios";
 import { useState } from "react";
 
-const CATEGORY_TYPES = [
-  "ENTRANCE",
-  "FRAME",
-  "RING",
-  "BUBBLE",
-  "THEME",
-  "EMOJI",
-  "NONE",
-];
+const CATEGORY_TYPES = ["HOT", "LUCKY", "SIV", "CUSTOMIZED", "BAG","NONE"];
 
 export default function AddCategoryModal({ close, onCategoryAdded }) {
   const [type, setType] = useState("");
