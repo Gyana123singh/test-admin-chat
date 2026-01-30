@@ -23,18 +23,28 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
 
       const res = await axios.post(
         "https://api.dilvoicechat.fun/api/gift/addCategory",
-        { type }, // 🔥 send enum type
+        { type },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
 
-      onCategoryAdded?.(res.data.data);
-      close();
-    } catch (err) {
-      if (err.response) {
-        setError(err.response.data.message || "Failed to add category");
-      } else if (err.request) {
-        setError("Backend not responding");
+      // ✅ backend success check
+      if (res.data?.success) {
+        onCategoryAdded?.(res.data.data);
+        close();
       } else {
-        setError("Something went wrong");
+        setError(res.data?.message || "Failed to add category");
+      }
+    } catch (err) {
+      console.error("Add category error:", err);
+
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError("Server not responding");
       }
     } finally {
       setLoading(false);
@@ -47,11 +57,12 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
         <h2 className="text-xl font-bold mb-4">Add Store Category</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* CATEGORY TYPE SELECT */}
+          {/* CATEGORY TYPE */}
           <div>
             <label className="text-sm font-semibold block mb-1">
               Select Category Type
             </label>
+
             <select
               value={type}
               onChange={(e) => setType(e.target.value)}
@@ -66,7 +77,9 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
             </select>
           </div>
 
-          {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+          {error && (
+            <p className="text-red-500 text-sm font-medium">{error}</p>
+          )}
 
           <div className="flex gap-3">
             <button
