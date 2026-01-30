@@ -2,7 +2,7 @@
 import axios from "axios";
 import { useState } from "react";
 
-const CATEGORY_TYPES = ["HOT", "LUCKY", "SIV", "CUSTOMIZED", "BAG","NONE"];
+const CATEGORY_TYPES = ["HOT", "LUCKY", "SIV", "CUSTOMIZED", "BAG", "NONE"];
 
 export default function AddCategoryModal({ close, onCategoryAdded }) {
   const [type, setType] = useState("");
@@ -24,11 +24,6 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
       const res = await axios.post(
         "https://api.dilvoicechat.fun/api/gift/addCategory",
         { type }, // 🔥 send enum type
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        },
       );
 
       onCategoryAdded?.(res.data.data);
