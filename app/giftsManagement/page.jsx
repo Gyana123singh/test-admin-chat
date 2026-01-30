@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Plus, Edit, Trash } from "lucide-react";
 
-import AddGiftModal from "../giftsManagement/AddGiftModal";
-import EditGiftModal from "../giftsManagement/EditGiftModal";
-import AddCategoryModal from "../giftsManagement/AddCategoryModal";
+import AddGiftModal from "../giftsManagement/AddGiftModal.jsx";
+import AddCategoryModal from "../giftsManagement/AddCategoryModal.jsx";
+
+const API_BASE = "https://api.dilvoicechat.fun/api/gift";
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
@@ -14,40 +15,87 @@ export default function GiftsPage() {
   const [openEdit, setOpenEdit] = useState(false);
 
   const [selectedGift, setSelectedGift] = useState(null);
-  const [gifts, setGifts] = useState([]); // ALWAYS ARRAY
+  const [gifts, setGifts] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const [selectedType, setSelectedType] = useState("ALL");
   const [loading, setLoading] = useState(false);
 
-  // ✅ FETCH GIFTS (SAFE)
-  const fetchGifts = async () => {
+  /* ===============================
+     FETCH CATEGORIES
+  =============================== */
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/getCategory`);
+
+      if (res.data?.success && Array.isArray(res.data.categories)) {
+        setCategories(res.data.categories.map((c) => c.type));
+      } else {
+        setCategories([]);
+      }
+    } catch (error) {
+      console.error("❌ Fetch categories failed:", error);
+      setCategories([]);
+    }
+  };
+
+  /* ===============================
+     FETCH GIFTS
+  =============================== */
+  const fetchGifts = async (category = "ALL") => {
     try {
       setLoading(true);
 
-      const res = await axios.get(
-        "https://api.dilvoicechat.fun/api/gift/getAllGift"
-      );
+      const url =
+        category === "ALL"
+          ? `${API_BASE}/getAllGift`
+          : `${API_BASE}/get-gift-by-category/${encodeURIComponent(category)}`;
 
-      if (res.data?.success && Array.isArray(res.data.gifts)) {
-        setGifts(res.data.gifts);
+      const res = await axios.get(url);
+
+      if (res.data?.success && Array.isArray(res.data.data)) {
+        setGifts(res.data.data);
       } else {
         setGifts([]);
       }
     } catch (error) {
-      console.error("Fetch gifts failed:", error);
+      console.error("❌ Fetch gifts failed:", error);
       setGifts([]);
     } finally {
       setLoading(false);
     }
   };
 
+  /* ===============================
+     INITIAL LOAD
+  =============================== */
   useEffect(() => {
-    fetchGifts();
+    fetchCategories();
+    fetchGifts("ALL");
   }, []);
 
-  // ✅ SAFE DELETE
-  const handleDelete = async (id) => {
+  /* ===============================
+     CATEGORY CHANGE
+  =============================== */
+  const handleTypeChange = (type) => {
+    setSelectedType(type);
+    fetchGifts(type);
+  };
+
+  /* ===============================
+     DELETE GIFT
+  =============================== */
+  const handleDelete = async (giftId) => {
     if (!confirm("Are you sure you want to delete this gift?")) return;
 
-    setGifts((prev = []) => prev.filter((g) => g._id !== id));
+    try {
+      await axios.delete(`${API_BASE}/delete/${giftId}`);
+      setGifts((prev) => prev.filter((g) => g._id !== giftId));
+      alert("Gift deleted successfully ✅");
+    } catch (error) {
+      console.error("❌ Delete gift failed:", error);
+      alert("Failed to delete gift");
+    }
   };
 
   return (
@@ -61,7 +109,7 @@ export default function GiftsPage() {
             onClick={() => setOpenAddCategory(true)}
             className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
           >
-            <Plus size={18} /> Add Category
+            <Plus size={18} /> Add Gift Category
           </button>
 
           <button
@@ -73,61 +121,67 @@ export default function GiftsPage() {
         </div>
       </div>
 
-      {/* LOADING */}
-      {loading && <p className="text-gray-500">Loading gifts...</p>}
+      {/* CATEGORY FILTER */}
+      <div className="flex gap-3 mb-6 flex-wrap">
+        <button
+          onClick={() => handleTypeChange("ALL")}
+          className={`px-4 py-1 rounded-full text-sm font-semibold ${
+            selectedType === "ALL"
+              ? "bg-purple-600 text-white"
+              : "bg-white border"
+          }`}
+        >
+          ALL
+        </button>
+
+        {categories.map((type) => (
+          <button
+            key={type}
+            onClick={() => handleTypeChange(type)}
+            className={`px-4 py-1 rounded-full text-sm font-semibold ${
+              selectedType === type
+                ? "bg-purple-600 text-white"
+                : "bg-white border"
+            }`}
+          >
+            {type}
+          </button>
+        ))}
+      </div>
+
+      {loading && <p>Loading gifts...</p>}
 
       {/* GIFTS GRID */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5">
-        {!loading && Array.isArray(gifts) && gifts.length === 0 && (
-          <p className="text-gray-500 col-span-full">
-            No gifts added yet.
-          </p>
-        )}
+        {!loading && gifts.length === 0 && <p>No gifts found.</p>}
 
-        {Array.isArray(gifts) &&
-          gifts.map((gift) => (
-            <div
-              key={gift._id}
-              className="bg-white rounded-xl shadow p-3 border"
-            >
-              <img
-                src={gift.giftImage}
-                alt={gift.name}
-                className="w-full h-28 object-contain rounded mb-2"
+        {gifts.map((gift) => (
+          <div key={gift._id} className="bg-white rounded-xl shadow p-3">
+            <img
+              src={
+                gift.icon
+                  ? `https://api.dilvoicechat.fun/${gift.icon}`
+                  : "/placeholder.png"
+              }
+              className="w-full h-28 object-contain mb-2"
+            />
+
+            <h3 className="text-sm font-semibold">{gift.name}</h3>
+            <p className="text-xs text-gray-600">{gift.category}</p>
+            <p className="text-xs font-semibold text-purple-600">
+              {gift.price} coins
+            </p>
+
+            <div className="flex justify-between mt-3">
+              <Edit size={18} className="text-blue-500 cursor-pointer" />
+              <Trash
+                size={18}
+                className="text-red-500 cursor-pointer"
+                onClick={() => handleDelete(gift._id)}
               />
-
-              <h3 className="text-sm font-semibold truncate">
-                {gift.name}
-              </h3>
-
-              <p className="text-xs text-gray-600">
-                {gift.category?.name || "Uncategorized"}
-              </p>
-
-              <p className="text-xs font-semibold text-purple-600">
-                {gift.price} coins
-              </p>
-
-              <div className="flex justify-between mt-3">
-                <button
-                  onClick={() => {
-                    setSelectedGift(gift);
-                    setOpenEdit(true);
-                  }}
-                  className="text-blue-500"
-                >
-                  <Edit size={18} />
-                </button>
-
-                <button
-                  onClick={() => handleDelete(gift._id)}
-                  className="text-red-500"
-                >
-                  <Trash size={18} />
-                </button>
-              </div>
             </div>
-          ))}
+          </div>
+        ))}
       </div>
 
       {/* MODALS */}
@@ -139,17 +193,7 @@ export default function GiftsPage() {
       )}
 
       {openAddCategory && (
-        <AddCategoryModal
-          close={() => setOpenAddCategory(false)}
-        />
-      )}
-
-      {openEdit && selectedGift && (
-        <EditGiftModal
-          gift={selectedGift}
-          close={() => setOpenEdit(false)}
-          onSuccess={fetchGifts}
-        />
+        <AddCategoryModal close={() => setOpenAddCategory(false)} />
       )}
     </div>
   );

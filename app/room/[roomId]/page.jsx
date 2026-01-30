@@ -52,37 +52,9 @@ export default function RoomPage() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoVisible, setVideoVisible] = useState(false);
   const [isHost, setIsHost] = useState(false);
-  const [micStatus, setMicStatus] = useState({});
-  const [giftQueue, setGiftQueue] = useState([]);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-
-  useEffect(() => {
-    if (!socketRef.current || !joined) return;
-
-    const socket = socketRef.current;
-
-    socket.on("gift:received", (data) => {
-      setGiftQueue((prev) => [...prev, data]);
-
-      setTimeout(() => {
-        setGiftQueue((prev) => prev.slice(1));
-      }, 2200);
-    });
-
-    socket.on("mic:update", ({ userId, muted, speaking }) => {
-      setMicStatus((prev) => ({
-        ...prev,
-        [userId]: { muted, speaking },
-      }));
-    });
-
-    return () => {
-      socket.off("gift:received");
-      socket.off("mic:update");
-    };
-  }, [joined]);
 
   /* ================= DECODE TOKEN ================= */
   useEffect(() => {
@@ -719,7 +691,7 @@ export default function RoomPage() {
             alt={gift.giftName}
             className="w-24 mx-auto"
           />
-          <p className="text-center text-sm text-white mt-1">
+          <p className="text-center text-sm text-w  hite mt-1">
             {gift.senderUsername} sent {gift.giftName}
           </p>
         </div>

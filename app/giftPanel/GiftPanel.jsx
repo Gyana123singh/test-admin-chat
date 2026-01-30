@@ -2,142 +2,105 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import Image from "next/image";
 
-export default function GiftPanel({
-  roomId,
-  socket,
-  currentUser,
-  selectedUser, // ✅ TARGET USER
-  roomUsers = [], // [{id, username}]
-  micUsers = [], // [userId]
-  micStatus = {},
-}) {
+export default function GiftPanel({ roomId, socket, currentUser, roomUsers }) {
+  const [categories, setCategories] = useState([]);
   const [gifts, setGifts] = useState([]);
-  const [selectedGift, setSelectedGift] = useState(null);
-  const [sendType, setSendType] = useState("individual");
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [sendType, setSendType] = useState("all_in_room");
   const [loading, setLoading] = useState(false);
 
   const token =
-    typeof window !== "undefined"
-      ? localStorage.getItem("authToken")
-      : null;
+    typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
-  /* =========================
-     FETCH GIFTS
-  ========================= */
+  /* ================= FETCH CATEGORY ================= */
   useEffect(() => {
     axios
-      .get("https://api.dilvoicechat.fun/api/gift/getAllGift")
-      .then((res) => setGifts(res.data.gifts || []))
-      .catch(() => {});
+      .get("https://api.dilvoicechat.fun/api/gifts/categories")
+      .then((res) => {
+        setCategories(res.data.categories);
+        if (res.data.categories.length > 0) {
+          setActiveCategory(res.data.categories[0]._id);
+        }
+      });
   }, []);
 
-  /* =========================
-     SEND GIFT
-  ========================= */
-  const sendGift = async () => {
-    if (!selectedGift) return alert("Select a gift");
+  /* ================= FETCH GIFTS ================= */
+  useEffect(() => {
+    if (!activeCategory) return;
 
-    // 🔥 VALIDATION
-    if (sendType === "individual" && !selectedUser) {
-      return alert("Select a user to send gift");
-    }
+    axios
+      .get("https://api.dilvoicechat.fun/api/gift/getAllGift")
+      .then((res) => {
+        setGifts(res.data.gifts);
+      });
+  }, [activeCategory]);
 
-    try {
-      setLoading(true);
+  /* ================= SEND GIFT ================= */
+  const sendGift = (giftId) => {
+    if (!socket || !roomId) return;
 
-      const payload = {
-        roomId,
-        giftId: selectedGift._id,
-        sendType,
-      };
-
-      // ✅ INDIVIDUAL
-      if (sendType === "individual") {
-        payload.recipients = [selectedUser.id];
-      }
-
-      // ✅ ALL IN ROOM
-      if (sendType === "all_in_room") {
-        payload.micOnlineUsers = roomUsers.map((u) => u.id);
-      }
-
-      // ✅ ALL ON MIC
-      if (sendType === "all_on_mic") {
-        payload.micOnlineUsers = micUsers; // must be [userId]
-        payload.micStatus = micStatus;
-      }
-
-      await axios.post(
-        "https://api.dilvoicechat.fun/api/gift/sendGift",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      setSelectedGift(null);
-    } catch (err) {
-      alert(err.response?.data?.message || "Gift failed");
-    } finally {
-      setLoading(false);
-    }
+    socket.emit("gift:send", {
+      roomId,
+      giftId,
+      sendType,
+    });
   };
 
   return (
-    <div className="bg-gray-900 border-t border-gray-700 p-3">
-      {/* 🎁 GIFTS */}
-      <div className="grid grid-cols-4 gap-3">
+    <div className="fixed bottom-20 left-0 right-0 bg-[#111] border-t border-gray-700 z-50">
+      {/* CATEGORY */}
+      <div className="flex overflow-x-auto p-2 gap-3 border-b border-gray-700">
+        {categories.map((cat) => (
+          <button
+            key={cat._id}
+            onClick={() => setActiveCategory(cat._id)}
+            className={`px-3 py-1 rounded text-sm whitespace-nowrap ${
+              activeCategory === cat._id
+                ? "bg-yellow-500 text-black"
+                : "bg-gray-800 text-white"
+            }`}
+          >
+            {cat.name}
+          </button>
+        ))}
+      </div>
+
+      {/* GIFTS */}
+      <div className="grid grid-cols-4 gap-3 p-3">
         {gifts.map((gift) => (
           <button
             key={gift._id}
-            onClick={() => setSelectedGift(gift)}
-            className={`p-2 rounded border ${
-              selectedGift?._id === gift._id
-                ? "border-yellow-400"
-                : "border-gray-700"
-            }`}
+            onClick={() => sendGift(gift._id)}
+            className="flex flex-col items-center bg-gray-800 rounded p-2 hover:bg-gray-700"
           >
-            <Image
-              src={gift.icon}
-              alt={gift.name}
-              width={50}
-              height={50}
-              unoptimized
-            />
-            <p className="text-xs text-center mt-1">{gift.price} 🪙</p>
+            <img src={gift.icon} className="w-12 h-12" />
+            <p className="text-xs mt-1">{gift.name}</p>
+            <p className="text-xs text-yellow-400">💰 {gift.price}</p>
           </button>
         ))}
       </div>
 
-      {/* 🎯 SEND TYPE */}
-      <div className="flex gap-2 mt-3">
-        {["individual", "all_in_room", "all_on_mic"].map((type) => (
-          <button
-            key={type}
-            onClick={() => setSendType(type)}
-            className={`px-3 py-1 text-xs rounded ${
-              sendType === type
-                ? "bg-yellow-500 text-black"
-                : "bg-gray-700 text-white"
-            }`}
-          >
-            {type.replaceAll("_", " ")}
-          </button>
-        ))}
-      </div>
+      {/* SEND TYPE */}
+      <div className="flex justify-around p-2 border-t border-gray-700 text-xs">
+        <button
+          onClick={() => setSendType("all_in_room")}
+          className={`px-3 py-1 rounded ${
+            sendType === "all_in_room" ? "bg-blue-600" : "bg-gray-700"
+          }`}
+        >
+          All Room
+        </button>
 
-      {/* 🚀 SEND */}
-      <button
-        onClick={sendGift}
-        disabled={loading}
-        className="mt-3 w-full bg-pink-600 hover:bg-pink-700 py-2 rounded font-semibold"
-      >
-        {loading ? "Sending..." : "🎁 Send Gift"}
-      </button>
+        <button
+          onClick={() => setSendType("all_on_mic")}
+          className={`px-3 py-1 rounded ${
+            sendType === "all_on_mic" ? "bg-green-600" : "bg-gray-700"
+          }`}
+        >
+          On Mic
+        </button>
+      </div>
     </div>
   );
 }

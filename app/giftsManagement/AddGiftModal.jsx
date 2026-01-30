@@ -1,68 +1,51 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
-export default function AddGiftModal({ close, onSuccess }) {
-  const [preview, setPreview] = useState("");
-  const [imageFile, setImageFile] = useState(null);
+export default function AddGiftPage() {
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
+  const [file, setFile] = useState(null);
+
   const [loading, setLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-
-  const dropdownRef = useRef(null);
-
-  const [form, setForm] = useState({
-    name: "",
-    price: "",
-    category: "",
-  });
+  const [error, setError] = useState("");
 
   /* ===============================
-     CLOSE DROPDOWN ON OUTSIDE CLICK
+     FETCH CATEGORIES (FIXED)
   =============================== */
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  const fetchCategories = async () => {
+    try {
+      const res = await axios.get(
+        "https://api.dilvoicechat.fun/api/gift/getCategory"
+      );
 
-  /* ===============================
-     FETCH CATEGORIES
-  =============================== */
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await axios.get(
-          "https://api.dilvoicechat.fun/api/gift/getCategory"
-        );
-        setCategories(res.data.categories || []);
-      } catch (err) {
-        console.error("Category fetch failed", err);
+      if (res.data?.success && Array.isArray(res.data.categories)) {
+        setCategories(res.data.categories);
+      } else {
+        setCategories([]);
       }
-    };
+    } catch (error) {
+      console.error("❌ Fetch categories failed:", error);
+      setCategories([]); // prevent crash
+    }
+  };
+
+  useEffect(() => {
     fetchCategories();
   }, []);
 
   /* ===============================
-     CLEANUP IMAGE PREVIEW
-  =============================== */
-  useEffect(() => {
-    return () => preview && URL.revokeObjectURL(preview);
-  }, [preview]);
-
-  /* ===============================
-     SUBMIT GIFT
+     SUBMIT
   =============================== */
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
-    if (!form.name || !form.price || !form.category || !imageFile) {
-      alert("All fields are required");
+    if (!name || !price || !category) {
+      setError("Name, price and category are required");
       return;
     }
 
@@ -70,126 +53,113 @@ export default function AddGiftModal({ close, onSuccess }) {
       setLoading(true);
 
       const formData = new FormData();
-      formData.append("name", form.name);
-      formData.append("price", form.price);
-      formData.append("category", form.category);
-      formData.append("icon", imageFile); // multer.single("icon")
+      formData.append("name", name);
+      formData.append("price", price);
+      formData.append("category", category); // ✅ string
+      if (file) {
+        formData.append("icon", file);
+      }
 
       await axios.post(
-        "https://api.dilvoicechat.fun/api/store-gifts/create",
+        "https://api.dilvoicechat.fun/api/gift/addGift",
         formData,
         {
           headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
             "Content-Type": "multipart/form-data",
           },
         }
       );
 
-      onSuccess?.();
-      close();
-
-      setForm({ name: "", price: "", category: "" });
-      setImageFile(null);
-      setPreview("");
-    } catch (error) {
-      console.error("Gift add failed:", error);
-      alert(error?.response?.data?.message || "Something went wrong");
+      alert("Gift created successfully ✅");
+      window.history.back();
+    } catch (err) {
+      console.error("❌ Create Gift Error:", err.response?.data || err.message);
+      setError(err.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl shadow-md w-[400px]">
-        <h2 className="text-xl font-bold mb-4">Add New Gift</h2>
+    <div className="min-h-screen bg-black/40 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-lg">
+        <h2 className="text-2xl font-bold mb-6">Add New Gift</h2>
 
-        <form onSubmit={handleSubmit}>
-          {/* NAME */}
-          <label className="text-sm font-semibold">Gift Name</label>
-          <input
-            className="border p-2 rounded w-full mb-3"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            required
-          />
-
-          {/* PRICE */}
-          <label className="text-sm font-semibold">Coin Cost</label>
-          <input
-            type="number"
-            className="border p-2 rounded w-full mb-3"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            required
-          />
-
-          {/* CATEGORY */}
-          <label className="text-sm font-semibold">Category</label>
-          <div className="relative mb-3" ref={dropdownRef}>
-            <div
-              className="border p-2 rounded cursor-pointer bg-white"
-              onClick={() => setIsOpen(!isOpen)}
-            >
-              {categories.find((c) => c._id === form.category)?.name ||
-                "Select Category"}
-            </div>
-
-            {isOpen && (
-              <div className="absolute z-50 bg-white border rounded mt-1 max-h-40 overflow-y-auto w-full shadow-md">
-                {categories.map((cat) => (
-                  <div
-                    key={cat._id}
-                    className="p-2 hover:bg-purple-100 cursor-pointer"
-                    onClick={() => {
-                      setForm({ ...form, category: cat._id });
-                      setIsOpen(false);
-                    }}
-                  >
-                    {cat.name}
-                  </div>
-                ))}
-              </div>
-            )}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Gift Name */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Gift Name</label>
+            <input
+              type="text"
+              placeholder="Enter gift name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2"
+            />
           </div>
 
-          {/* IMAGE */}
-          <label className="text-sm font-semibold">Gift Image</label>
-          <input
-            type="file"
-            accept="image/*"
-            required
-            onChange={(e) => {
-              const file = e.target.files[0];
-              if (!file.type.startsWith("image/")) {
-                alert("Only image files allowed");
-                return;
-              }
-              setImageFile(file);
-              setPreview(URL.createObjectURL(file));
-            }}
-            className="mb-3"
-          />
-
-          {preview && (
-            <img
-              src={preview}
-              alt="Preview"
-              className="w-24 h-24 object-cover border rounded mb-3"
+          {/* Coin Cost */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Coin Cost</label>
+            <input
+              type="number"
+              placeholder="Enter coin cost"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2"
             />
-          )}
+          </div>
+
+          {/* CATEGORY SELECT (FIXED) */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full border rounded-lg px-3 py-2 bg-white"
+            >
+              <option value="">Select Category</option>
+
+              {categories.map((cat, index) => (
+                <option key={index} value={cat.type}>
+                  {cat.type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* File Upload */}
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Gift Image / Animation
+            </label>
+            <input
+              type="file"
+              accept="image/*,video/*"
+              onChange={(e) => setFile(e.target.files[0])}
+              className="w-full text-sm"
+            />
+          </div>
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
           <button
+            type="submit"
             disabled={loading}
-            className="bg-purple-600 text-white w-full py-2 rounded disabled:opacity-50"
+            className="w-full bg-purple-400 text-white py-3 rounded-xl"
           >
             {loading ? "Adding..." : "Add Gift"}
           </button>
-        </form>
 
-        <button onClick={close} className="text-red-500 mt-3 w-full">
-          Cancel
-        </button>
+          <button
+            type="button"
+            onClick={() => window.history.back()}
+            className="w-full text-red-500 text-center mt-2"
+          >
+            Cancel
+          </button>
+        </form>
       </div>
     </div>
   );

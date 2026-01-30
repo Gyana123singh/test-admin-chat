@@ -2,8 +2,18 @@
 import axios from "axios";
 import { useState } from "react";
 
+const CATEGORY_TYPES = [
+  "ENTRANCE",
+  "FRAME",
+  "RING",
+  "BUBBLE",
+  "THEME",
+  "EMOJI",
+  "NONE",
+];
+
 export default function AddCategoryModal({ close, onCategoryAdded }) {
-  const [name, setName] = useState("");
+  const [type, setType] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -11,8 +21,8 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
     e.preventDefault();
     setError("");
 
-    if (!name.trim()) {
-      setError("Category name is required");
+    if (!type) {
+      setError("Please select a category type");
       return;
     }
 
@@ -21,15 +31,19 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
 
       const res = await axios.post(
         "https://api.dilvoicechat.fun/api/gift/addCategory",
-        { name: name.trim() },
-        { withCredentials: true }
+        { type }, // 🔥 send enum type
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
       );
-      console.log(res.data);
-      setName("");
+
+      onCategoryAdded?.(res.data.data);
       close();
     } catch (err) {
       if (err.response) {
-        setError(err.response.data.message);
+        setError(err.response.data.message || "Failed to add category");
       } else if (err.request) {
         setError("Backend not responding");
       } else {
@@ -43,20 +57,26 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white p-6 rounded-xl shadow-md w-[450px]">
-        <h2 className="text-xl font-bold mb-4">Add Category</h2>
+        <h2 className="text-xl font-bold mb-4">Add Store Category</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* CATEGORY TYPE SELECT */}
           <div>
             <label className="text-sm font-semibold block mb-1">
-              Category Name
+              Select Category Type
             </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value)}
               className="w-full border rounded-lg px-3 py-2"
-              placeholder="Enter category name"
-            />
+            >
+              <option value="">-- Select Type --</option>
+              {CATEGORY_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
