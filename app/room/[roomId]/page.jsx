@@ -52,6 +52,9 @@ export default function RoomPage() {
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoVisible, setVideoVisible] = useState(false);
   const [isHost, setIsHost] = useState(false);
+  // 🎁 GIFT STATES
+  const [giftQueue, setGiftQueue] = useState([]);
+  const [coins, setCoins] = useState(0);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -67,6 +70,7 @@ export default function RoomPage() {
         username: decoded.username || decoded.name || "User",
         avatar: decoded.avatar || "/avatar.png",
       });
+      setCoins(decoded.coins || 0);
     } catch (err) {
       console.error("❌ Token decode error:", err);
     }
@@ -630,6 +634,39 @@ export default function RoomPage() {
     };
   }, [joined, currentUser, roomId]);
 
+  // =====================
+  // 🎁 GIFT SOCKET EVENTS
+  // =====================
+  useEffect(() => {
+    if (!socketRef.current || !joined) return;
+
+    const socket = socketRef.current;
+
+    // 🎬 receive gift animation
+    socket.on("gift:animation", (data) => {
+      setGiftQueue((prev) => [...prev, data]);
+
+      setTimeout(() => {
+        setGiftQueue((prev) => prev.slice(1));
+      }, 3000);
+    });
+
+    // 💰 live coins update
+    socket.on("coins:update", ({ coins }) => {
+      setCoins(coins);
+    });
+
+    socket.on("gift:error", ({ message }) => {
+      alert(message);
+    });
+
+    return () => {
+      socket.off("gift:animation");
+      socket.off("coins:update");
+      socket.off("gift:error");
+    };
+  }, [joined]);
+
   /* ================= TOGGLE MIC ================= */
   const toggleMic = () => {
     if (!localStreamRef.current || !socketRef.current) return;
@@ -687,12 +724,12 @@ export default function RoomPage() {
           className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-gift"
         >
           <img
-            src={gift.giftIcon}
-            alt={gift.giftName}
+            src={gift.gift.icon}
+            alt={gift.gift.name}
             className="w-24 mx-auto"
           />
-          <p className="text-center text-sm text-w  hite mt-1">
-            {gift.senderUsername} sent {gift.giftName}
+          <p className="text-center text-sm text-white mt-1">
+            {gift.sender.username} sent {gift.gift.name}
           </p>
         </div>
       ))}
@@ -728,6 +765,8 @@ export default function RoomPage() {
             unoptimized
           />
           <p className="text-xs text-gray-400 mt-1">{currentUser.username}</p>
+          {/* 💰 COINS DISPLAY */}
+          <p className="text-xs text-yellow-400 font-semibold">💰 {coins}</p>
         </div>
         <p className="text-sm text-gray-300">{room.roomId}</p>
 
@@ -889,9 +928,6 @@ export default function RoomPage() {
           roomId={roomId}
           socket={socketRef.current}
           currentUser={currentUser}
-          micUsers={participants.map((u) => u.id)}
-          micStatus={micStatus}
-          roomUsers={participants}
         />
       )}
 
