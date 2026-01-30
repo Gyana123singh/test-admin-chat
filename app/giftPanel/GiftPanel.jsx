@@ -14,7 +14,7 @@ export default function GiftPanel({ roomId, socket }) {
   useEffect(() => {
     axios
       .get(
-        `https://api.dilvoicechat.fun/api/gift/get-gift-by-category/${category}`
+        `https://api.dilvoicechat.fun/api/gift/get-gift-by-category/${category}`,
       )
       .then((res) => {
         setGifts(res.data.data || []);
@@ -39,10 +39,9 @@ export default function GiftPanel({ roomId, socket }) {
 
   return (
     <div className="fixed bottom-20 left-0 right-0 bg-[#111] border-t border-gray-700 z-50">
-      
       {/* CATEGORY TABS */}
       <div className="flex gap-2 px-3 py-2 border-b border-gray-700 overflow-x-auto text-xs">
-        {["room", "love", "vip", "pk"].map((cat) => (
+        {["HOT", "LUCKY", "SIV", "CUSTOMIZED", "BAG"].map((cat) => (
           <button
             key={cat}
             onClick={() => setCategory(cat)}
@@ -62,9 +61,7 @@ export default function GiftPanel({ roomId, socket }) {
         <button
           onClick={() => setSendType("all_in_room")}
           className={`px-3 py-1 rounded ${
-            sendType === "all_in_room"
-              ? "bg-blue-600"
-              : "bg-gray-700"
+            sendType === "all_in_room" ? "bg-blue-600" : "bg-gray-700"
           }`}
         >
           All Room
@@ -73,9 +70,7 @@ export default function GiftPanel({ roomId, socket }) {
         <button
           onClick={() => setSendType("all_on_mic")}
           className={`px-3 py-1 rounded ${
-            sendType === "all_on_mic"
-              ? "bg-green-600"
-              : "bg-gray-700"
+            sendType === "all_on_mic" ? "bg-green-600" : "bg-gray-700"
           }`}
         >
           On Mic
