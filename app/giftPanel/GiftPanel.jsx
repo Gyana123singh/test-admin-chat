@@ -14,6 +14,7 @@ export default function GiftPanel({ roomId, socket }) {
   const [comboCount, setComboCount] = useState(0);
   const comboTimer = useRef(null);
 
+  /* ================= FETCH GIFTS ================= */
   useEffect(() => {
     axios
       .get(
@@ -22,21 +23,14 @@ export default function GiftPanel({ roomId, socket }) {
       .then((res) => setGifts(res.data.data || []));
   }, [category]);
 
-  const sendGift = (gift) => {
-    if (!socket) return;
-
+  /* ================= SELECT GIFT ================= */
+  const selectGift = (gift) => {
     if (selectedGift?._id === gift._id) {
       setComboCount((c) => c + 1);
     } else {
       setSelectedGift(gift);
       setComboCount(1);
     }
-
-    socket.emit("gift:send", {
-      roomId,
-      giftId: gift._id,
-      sendType,
-    });
 
     clearTimeout(comboTimer.current);
     comboTimer.current = setTimeout(() => {
@@ -45,8 +39,22 @@ export default function GiftPanel({ roomId, socket }) {
     }, 2000);
   };
 
+  /* ================= SEND GIFT ================= */
+  const sendGift = () => {
+    if (!socket || !roomId || !selectedGift) return;
+
+    socket.emit("gift:send", {
+      roomId,
+      giftId: selectedGift._id,
+      sendType,
+    });
+
+    // keep combo running if user sends again quickly
+  };
+
   return (
     <div className="fixed bottom-20 left-0 right-0 bg-[#111] z-50">
+      {/* CATEGORY */}
       <div className="flex gap-2 p-2 overflow-x-auto text-xs">
         {CATEGORIES.map((cat) => (
           <button
@@ -61,6 +69,7 @@ export default function GiftPanel({ roomId, socket }) {
         ))}
       </div>
 
+      {/* SEND TYPE */}
       <div className="flex justify-around p-2 text-xs">
         <button
           onClick={() => setSendType("all_in_room")}
@@ -80,11 +89,12 @@ export default function GiftPanel({ roomId, socket }) {
         </button>
       </div>
 
+      {/* GIFTS GRID */}
       <div className="grid grid-cols-4 gap-3 p-3">
         {gifts.map((gift) => (
           <button
             key={gift._id}
-            onClick={() => sendGift(gift)}
+            onClick={() => selectGift(gift)}
             className={`p-2 rounded ${
               selectedGift?._id === gift._id
                 ? "bg-yellow-600 text-black"
@@ -94,11 +104,29 @@ export default function GiftPanel({ roomId, socket }) {
             <img src={gift.icon} className="w-12 mx-auto" />
             <p className="text-xs">{gift.name}</p>
             <p className="text-xs text-yellow-400">💰 {gift.price}</p>
+
             {selectedGift?._id === gift._id && comboCount > 1 && (
               <span className="text-xs font-bold">x{comboCount}</span>
             )}
           </button>
         ))}
+      </div>
+
+      {/* ✅ SEND BUTTON */}
+      <div className="p-3 border-t border-gray-700">
+        <button
+          onClick={sendGift}
+          disabled={!selectedGift}
+          className={`w-full py-2 rounded font-semibold ${
+            selectedGift
+              ? "bg-yellow-500 text-black"
+              : "bg-gray-700 text-gray-400 cursor-not-allowed"
+          }`}
+        >
+          {selectedGift
+            ? `Send ${selectedGift.name}`
+            : "Select a gift to send"}
+        </button>
       </div>
     </div>
   );
