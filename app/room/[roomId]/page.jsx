@@ -9,7 +9,7 @@ import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
 import AddFriend from "@/app/components/AddFriend";
 import RechargePage from "@/app/recharge/page";
 import MusicPlayer from "../musicPlayer";
-// import GiftPanel from "@/app/giftPanel/GiftPanel";
+import GiftPanel from "@/app/giftPanel/GiftPanel";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.dilvoicechat.fun";
@@ -51,6 +51,7 @@ export default function RoomPage() {
   const videoRef = useRef(null);
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoVisible, setVideoVisible] = useState(false);
+  const [isHost, setIsHost] = useState(false);
   // 🎁 GIFT STATES
   const [giftQueue, setGiftQueue] = useState([]);
   const [coins, setCoins] = useState(0);
@@ -911,17 +912,17 @@ export default function RoomPage() {
           roomId={roomId}
           socket={socketRef.current}
           currentUser={currentUser}
-          isHost={String(room.hostId) === String(currentUser.id)}
+          isDJ={String(room.hostId) === String(currentUser.id)}
         />
       )}
 
-      {/* {joined && (
+      {joined && (
         <GiftPanel
           roomId={roomId}
           socket={socketRef.current}
           currentUser={currentUser}
         />
-      )} */}
+      )}
 
       {/* ✅ MESSAGE INPUT */}
       {joined && (
