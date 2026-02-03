@@ -20,6 +20,11 @@ export default function MusicPlayer({
   const [isPlaying, setIsPlaying] = useState(false);
 
   const isDJ = isHost;
+  useEffect(() => {
+    console.log("🎧 MusicPlayer mounted");
+    console.log("isDJ:", isHost);
+    console.log("currentUser:", currentUser.id);
+  }, []);
 
   /* ======================
      HARD LOCK AUDIO (LISTENERS)

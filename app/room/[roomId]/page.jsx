@@ -51,7 +51,6 @@ export default function RoomPage() {
   const videoRef = useRef(null);
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoVisible, setVideoVisible] = useState(false);
-  const [isHost, setIsHost] = useState(false);
   // 🎁 GIFT STATES
   const [giftQueue, setGiftQueue] = useState([]);
   const [coins, setCoins] = useState(0);
@@ -93,14 +92,6 @@ export default function RoomPage() {
       }
     })();
   }, [roomId, token]);
-
-  useEffect(() => {
-    if (!room || !currentUser) return;
-
-    if (room.hostId === currentUser.id) {
-      setIsHost(true);
-    }
-  }, [room, currentUser]);
 
   /* ================= VIDEO UPLOAD ================= */
   const uploadVideo = async (file) => {
@@ -915,12 +906,13 @@ export default function RoomPage() {
       )}
 
       {/* 🎵 MUSIC PLAYER */}
-      {joined && socketRef.current && currentUser && (
+
+      {joined && socketRef.current && currentUser && room && (
         <MusicPlayer
           roomId={roomId}
           socket={socketRef.current}
           currentUser={currentUser}
-          isHost={isHost} // ✅ ADD THIS
+          isHost={room.hostId === currentUser.id} // ✅ FIXED
         />
       )}
 
