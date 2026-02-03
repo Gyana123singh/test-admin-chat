@@ -158,11 +158,8 @@ export default function GiftsPage() {
         {gifts.map((gift) => (
           <div key={gift._id} className="bg-white rounded-xl shadow p-3">
             <img
-              src={
-                gift.icon
-                  ? `https://api.dilvoicechat.fun/${gift.icon}`
-                  : "/placeholder.png"
-              }
+              src={gift.icon || "/placeholder.png"}
+              alt={gift.name}
               className="w-full h-28 object-contain mb-2"
             />
 
