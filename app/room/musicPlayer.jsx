@@ -9,20 +9,43 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
   const audioRef = useRef(null);
 
   const [musicList, setMusicList] = useState([]);
-  const [uploading, setUploading] = useState(false);
   const [currentSong, setCurrentSong] = useState(null);
+  const [playedBy, setPlayedBy] = useState(null);
+  const [startedAt, setStartedAt] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  const isDJ = playedBy === currentUser.id;
 
   /* ======================
-     LOAD MUSIC LIST
+     HARD LOCK AUDIO (LISTENER ONLY)
+  ====================== */
+  const lockAudio = () => {
+    const audio = audioRef.current;
+    if (!audio || !startedAt) return;
+
+    audio.controls = false;
+    audio.disableRemotePlayback = true;
+
+    audio.onseeking = () => {
+      audio.currentTime = (Date.now() - startedAt) / 1000;
+    };
+
+    audio.onpause = () => {
+      if (isPlaying) {
+        audio.play().catch(() => {});
+      }
+    };
+  };
+
+  /* ======================
+     LOAD MUSIC LIST (DJ ONLY)
   ====================== */
   const loadMusic = async () => {
     try {
       const res = await axios.get(
         `${API}/api/music/list/${roomId}`,
         {
-          headers: {
-            userid: currentUser.id,
-          },
+          headers: { userid: currentUser.id },
         }
       );
       setMusicList(res.data.data || []);
@@ -32,48 +55,49 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
   };
 
   /* ======================
-     UPLOAD MUSIC
+     UPLOAD MUSIC (DJ ONLY)
   ====================== */
   const uploadMusic = async (file) => {
-    if (!file) return;
+    if (!file || !isDJ) return;
 
     const form = new FormData();
     form.append("music", file);
     form.append("userId", currentUser.id);
 
-    try {
-      setUploading(true);
+    await axios.post(
+      `${API}/api/music/upload/${roomId}`,
+      form
+    );
 
-      await axios.post(
-        `${API}/api/music/upload/${roomId}`,
-        form,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      await loadMusic();
-    } catch (err) {
-      alert("Upload failed");
-      console.error(err);
-    } finally {
-      setUploading(false);
-    }
+    loadMusic();
   };
 
   /* ======================
-     PLAY MUSIC
+     DJ CONTROLS
   ====================== */
-  const playMusic = async () => {
-    await axios.post(`${API}/api/music/play/${roomId}`, {
+  const play = () =>
+    axios.post(`${API}/api/music/play/${roomId}`, {
       userId: currentUser.id,
     });
-  };
+
+  const pause = () =>
+    axios.post(`${API}/api/music/pause/${roomId}`, {
+      userId: currentUser.id,
+      pausedAt: audioRef.current.currentTime,
+    });
+
+  const resume = () =>
+    axios.post(`${API}/api/music/resume/${roomId}`, {
+      userId: currentUser.id,
+    });
+
+  const stop = () =>
+    axios.post(`${API}/api/music/stop/${roomId}`, {
+      userId: currentUser.id,
+    });
 
   /* ======================
-     SOCKET EVENTS
+     SOCKET EVENTS (SERVER AUTHORITY)
   ====================== */
   useEffect(() => {
     if (!socket) return;
@@ -82,26 +106,32 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
       const audio = audioRef.current;
       if (!audio) return;
 
-      audio.src = data.musicUrl;
-
-      const seek = (Date.now() - data.startedAt) / 1000;
-      audio.currentTime = Math.max(0, seek);
-
-      audio.play().catch(() => {});
+      setPlayedBy(data.playedBy);
+      setStartedAt(data.startedAt);
+      setIsPlaying(true);
       setCurrentSong(data.musicFile?.name);
+
+      audio.src = data.musicUrl;
+      audio.currentTime = (Date.now() - data.startedAt) / 1000;
+      audio.play().catch(() => {});
+      lockAudio();
     });
 
-    socket.on("music:paused", ({ pausedAt }) => {
-      const audio = audioRef.current;
-      audio.pause();
-      audio.currentTime = pausedAt / 1000;
+    socket.on("music:paused", () => {
+      audioRef.current?.pause();
+      setIsPlaying(false);
     });
 
     socket.on("music:resumed", ({ startedAt }) => {
       const audio = audioRef.current;
-      const seek = (Date.now() - startedAt) / 1000;
-      audio.currentTime = seek / 1000;
-      audio.play();
+      if (!audio) return;
+
+      setStartedAt(startedAt);
+      setIsPlaying(true);
+
+      audio.currentTime = (Date.now() - startedAt) / 1000;
+      audio.play().catch(() => {});
+      lockAudio();
     });
 
     socket.on("music:stopped", () => {
@@ -109,6 +139,28 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
       audio.pause();
       audio.src = "";
       setCurrentSong(null);
+      setPlayedBy(null);
+      setIsPlaying(false);
+    });
+
+    socket.on("room:musicState", (state) => {
+      if (!state.musicUrl) return;
+
+      const audio = audioRef.current;
+
+      setPlayedBy(state.playedBy);
+      setStartedAt(state.startedAt);
+      setIsPlaying(state.isPlaying);
+      setCurrentSong(state.musicFile?.name);
+
+      audio.src = state.musicUrl;
+
+      if (state.isPlaying && state.startedAt) {
+        audio.currentTime = (Date.now() - state.startedAt) / 1000;
+        audio.play().catch(() => {});
+      }
+
+      lockAudio();
     });
 
     return () => {
@@ -116,47 +168,81 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
       socket.off("music:paused");
       socket.off("music:resumed");
       socket.off("music:stopped");
+      socket.off("room:musicState");
     };
-  }, [socket]);
+  }, [socket, startedAt, isPlaying]);
+
+  /* ======================
+     INIT
+  ====================== */
+  useEffect(() => {
+    loadMusic();
+  }, []);
 
   return (
     <div className="border-t border-gray-700 p-4 bg-black/90">
-      <audio ref={audioRef} />
+      <audio ref={audioRef} preload="auto" />
 
       <h3 className="text-sm font-semibold mb-2">🎵 Room Music</h3>
 
-      {/* Upload */}
-      <input
-        type="file"
-        accept="audio/*"
-        disabled={uploading}
-        onChange={(e) => uploadMusic(e.target.files[0])}
-        className="text-xs mb-3"
-      />
+      {/* DJ UPLOAD */}
+      {isDJ && (
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={(e) => uploadMusic(e.target.files[0])}
+          className="text-xs mb-3"
+        />
+      )}
 
-      {/* Current */}
+      {/* CURRENT TRACK */}
       {currentSong && (
         <div className="text-xs text-green-400 mb-2">
           ▶️ Playing: {currentSong}
         </div>
       )}
 
-      {/* List */}
+      {/* DJ CONTROLS */}
+      {isDJ && (
+        <div className="flex gap-2 mb-3">
+          {!isPlaying ? (
+            <button
+              onClick={play}
+              className="bg-green-600 px-3 py-1 rounded"
+            >
+              Play
+            </button>
+          ) : (
+            <button
+              onClick={pause}
+              className="bg-yellow-600 px-3 py-1 rounded"
+            >
+              Pause
+            </button>
+          )}
+          <button
+            onClick={resume}
+            className="bg-blue-600 px-3 py-1 rounded"
+          >
+            Resume
+          </button>
+          <button
+            onClick={stop}
+            className="bg-red-600 px-3 py-1 rounded"
+          >
+            Stop
+          </button>
+        </div>
+      )}
+
+      {/* MUSIC LIST (VIEW ONLY FOR LISTENERS) */}
       <div className="space-y-2 max-h-40 overflow-y-auto">
         {musicList.map((m) => (
           <div
             key={m._id}
-            className="flex justify-between items-center bg-gray-800 px-2 py-1 rounded"
+            className="bg-gray-800 px-2 py-1 rounded text-xs truncate"
           >
-            <span className="text-xs truncate">
-              {m.originalName}
-            </span>
-            <button
-              onClick={playMusic}
-              className="text-xs bg-green-600 px-2 py-1 rounded"
-            >
-              ▶ Play
-            </button>
+            {m.originalName}
           </div>
         ))}
       </div>
