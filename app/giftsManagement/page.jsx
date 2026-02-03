@@ -55,6 +55,7 @@ export default function GiftsPage() {
 
       if (res.data?.success && Array.isArray(res.data.data)) {
         setGifts(res.data.data);
+        console.log(res.data.data);
       } else {
         setGifts([]);
       }
@@ -186,10 +187,7 @@ export default function GiftsPage() {
 
       {/* MODALS */}
       {openAdd && (
-        <AddGiftModal
-          close={() => setOpenAdd(false)}
-          onSuccess={fetchGifts}
-        />
+        <AddGiftModal close={() => setOpenAdd(false)} onSuccess={fetchGifts} />
       )}
 
       {openAddCategory && (
