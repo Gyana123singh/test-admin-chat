@@ -5,13 +5,14 @@ import axios from "axios";
 
 const API = "https://api.dilvoicechat.fun";
 
-export default function MusicPlayer({ roomId, socket, currentUser, isDJ }) {
+export default function MusicPlayer({ roomId, socket, currentUser }) {
   const audioRef = useRef(null);
 
   const [musicList, setMusicList] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [startedAt, setStartedAt] = useState(null);
+  const [djId, setDjId] = useState(null); // 🔥 SOURCE OF TRUTH
 
   /* ================= LOAD LIST ================= */
   const loadMusic = async () => {
@@ -21,7 +22,7 @@ export default function MusicPlayer({ roomId, socket, currentUser, isDJ }) {
     setMusicList(res.data.data || []);
   };
 
-  /* ================= UPLOAD (DJ ONLY) ================= */
+  /* ================= UPLOAD ================= */
   const uploadMusic = async (file) => {
     if (!file) return;
 
@@ -64,10 +65,13 @@ export default function MusicPlayer({ roomId, socket, currentUser, isDJ }) {
     if (!socket) return;
 
     socket.on("music:play", (data) => {
+      setDjId(data.playedBy);
+
       const audio = audioRef.current;
       audio.src = data.musicUrl;
       audio.currentTime = (Date.now() - data.startedAt) / 1000;
       audio.play().catch(() => {});
+
       setCurrentSong(data.musicFile.name);
       setStartedAt(data.startedAt);
       setIsPlaying(true);
@@ -81,12 +85,13 @@ export default function MusicPlayer({ roomId, socket, currentUser, isDJ }) {
     socket.on("music:resumed", ({ startedAt }) => {
       const audio = audioRef.current;
       audio.currentTime = (Date.now() - startedAt) / 1000;
-      audio.play();
+      audio.play().catch(() => {});
       setStartedAt(startedAt);
       setIsPlaying(true);
     });
 
     socket.on("music:stopped", () => {
+      setDjId(null);
       audioRef.current.pause();
       audioRef.current.src = "";
       setCurrentSong(null);
@@ -94,6 +99,8 @@ export default function MusicPlayer({ roomId, socket, currentUser, isDJ }) {
     });
 
     socket.on("room:musicState", (state) => {
+      setDjId(state.playedBy);
+
       if (!state.musicUrl) return;
 
       const audio = audioRef.current;
@@ -127,19 +134,24 @@ export default function MusicPlayer({ roomId, socket, currentUser, isDJ }) {
     loadMusic();
   }, []);
 
+  /* ================= DJ CHECK ================= */
+  const isDJ = djId && String(djId) === String(currentUser.id);
+
   return (
     <div className="border-t border-gray-700 p-4 bg-black/90">
       <audio ref={audioRef} preload="auto" />
 
       <h3 className="text-sm font-semibold mb-2">🎵 Room Music</h3>
 
-      {/* DJ UPLOAD */}
-      <input
-        type="file"
-        accept="audio/*"
-        onChange={(e) => uploadMusic(e.target.files[0])}
-        className="text-xs mb-3"
-      />
+      {/* UPLOAD (allowed until DJ lock) */}
+      {!djId && (
+        <input
+          type="file"
+          accept="audio/*"
+          onChange={(e) => uploadMusic(e.target.files[0])}
+          className="text-xs mb-3"
+        />
+      )}
 
       {currentSong && (
         <div className="text-xs text-green-400 mb-2">
