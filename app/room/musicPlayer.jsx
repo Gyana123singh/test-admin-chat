@@ -5,12 +5,7 @@ import axios from "axios";
 
 const API = "https://api.dilvoicechat.fun";
 
-export default function MusicPlayer({
-  roomId,
-  socket,
-  currentUser,
-  isDJ,
-}) {
+export default function MusicPlayer({ roomId, socket, currentUser, isDJ }) {
   const audioRef = useRef(null);
 
   const [musicList, setMusicList] = useState([]);
@@ -28,14 +23,18 @@ export default function MusicPlayer({
 
   /* ================= UPLOAD (DJ ONLY) ================= */
   const uploadMusic = async (file) => {
-    if (!file || !isDJ) return;
+    if (!file) return;
 
     const form = new FormData();
     form.append("music", file);
     form.append("userId", currentUser.id);
 
-    await axios.post(`${API}/api/music/upload/${roomId}`, form);
-    loadMusic();
+    try {
+      await axios.post(`${API}/api/music/upload/${roomId}`, form);
+      loadMusic();
+    } catch (err) {
+      alert(err.response?.data?.error || "Upload failed");
+    }
   };
 
   /* ================= DJ CONTROLS ================= */
@@ -135,14 +134,12 @@ export default function MusicPlayer({
       <h3 className="text-sm font-semibold mb-2">🎵 Room Music</h3>
 
       {/* DJ UPLOAD */}
-      {isDJ && (
-        <input
-          type="file"
-          accept="audio/*"
-          onChange={(e) => uploadMusic(e.target.files[0])}
-          className="text-xs mb-3"
-        />
-      )}
+      <input
+        type="file"
+        accept="audio/*"
+        onChange={(e) => uploadMusic(e.target.files[0])}
+        className="text-xs mb-3"
+      />
 
       {currentSong && (
         <div className="text-xs text-green-400 mb-2">
