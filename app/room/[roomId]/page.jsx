@@ -7,7 +7,6 @@ import axios from "axios";
 import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
 import AddFriend from "@/app/components/AddFriend";
-import RechargePage from "@/app/recharge/page";
 import MusicPlayer from "../musicPlayer";
 import GiftPanel from "@/app/giftPanel/GiftPanel";
 
@@ -55,6 +54,8 @@ export default function RoomPage() {
   // 🎁 GIFT STATES
   const [giftQueue, setGiftQueue] = useState([]);
   const [coins, setCoins] = useState(0);
+  const [showRecharge, setShowRecharge] = useState(false);
+  const [rechargeInfo, setRechargeInfo] = useState(null);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -487,7 +488,6 @@ export default function RoomPage() {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       console.log("✅ HTTP join successful");
-      <RechargePage />;
 
       if (!socketRef.current) {
         socketRef.current = io(SOCKET_URL, {
@@ -651,10 +651,14 @@ export default function RoomPage() {
     socket.on("gift:error", ({ message }) => {
       alert(message);
     });
-
+    socket.on("gift:recharge", (data) => {
+      setRechargeInfo(data);
+      setShowRecharge(true);
+    });
     return () => {
       socket.off("gift:animation");
       socket.off("coins:update");
+      socket.off("gift:recharge");
       socket.off("gift:error");
     };
   }, [joined]);
@@ -708,6 +712,34 @@ export default function RoomPage() {
         controls
         style={{ display: "none" }}
       />
+
+      {/* 💳 RECHARGE POPUP */}
+      {showRecharge && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div className="bg-gray-900 p-6 rounded w-80 text-center">
+            <h2 className="text-lg font-semibold">💰 Insufficient Coins</h2>
+            <p className="text-sm mt-2">
+              Need <b>{rechargeInfo?.requiredCoins}</b> coins
+              <br />
+              You have <b>{rechargeInfo?.currentCoins}</b>
+            </p>
+            <div className="flex gap-2 mt-4">
+              <button
+                onClick={() => setShowRecharge(false)}
+                className="flex-1 bg-gray-700 py-2 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => (window.location.href = "/recharge")}
+                className="flex-1 bg-yellow-500 text-black py-2 rounded"
+              >
+                Recharge
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🎁 GIFT FLOATING ANIMATION */}
       {giftQueue.map((gift, index) => (
