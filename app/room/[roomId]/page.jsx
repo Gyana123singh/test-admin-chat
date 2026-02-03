@@ -906,13 +906,12 @@ export default function RoomPage() {
       )}
 
       {/* 🎵 MUSIC PLAYER */}
-
       {joined && socketRef.current && currentUser && room && (
         <MusicPlayer
           roomId={roomId}
           socket={socketRef.current}
           currentUser={currentUser}
-          isHost={room.hostId === currentUser.id} // ✅ FIXED
+          isHost={String(room.hostId) === String(currentUser.id)}
         />
       )}
 
