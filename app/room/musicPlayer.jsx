@@ -1,34 +1,26 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import axios from "axios";
+import {
+  uploadMusic,
+  playMusic,
+  pauseMusic,
+  resumeMusic,
+  stopMusic,
+  fetchMusicList,
+} from "../../lib/musicApi";
 
-const API = "https://api.dilvoicechat.fun";
-
-export default function MusicPlayer({
-  roomId,
-  socket,
-  currentUser,
-  isHost, // ✅ DJ identity comes from RoomPage
-}) {
+export default function MusicPlayer({ roomId, socket, currentUser, isHost }) {
   const audioRef = useRef(null);
 
   const [musicList, setMusicList] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
-  const [playedBy, setPlayedBy] = useState(null);
   const [startedAt, setStartedAt] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const isDJ = isHost;
-  useEffect(() => {
-    console.log("🎧 MusicPlayer mounted");
-    console.log("isDJ:", isHost);
-    console.log("currentUser:", currentUser.id);
-  }, []);
+  const isDJ = Boolean(isHost);
 
-  /* ======================
-     HARD LOCK AUDIO (LISTENERS)
-  ====================== */
+  /* 🔒 HARD LOCK AUDIO (listeners) */
   const lockAudio = () => {
     const audio = audioRef.current;
     if (!audio || !startedAt) return;
@@ -36,89 +28,41 @@ export default function MusicPlayer({
     audio.controls = false;
     audio.disableRemotePlayback = true;
 
-    // ❌ Prevent seeking
     audio.onseeking = () => {
       audio.currentTime = (Date.now() - startedAt) / 1000;
     };
 
-    // ❌ Prevent pause by listeners
     audio.onpause = () => {
-      if (isPlaying) {
-        audio.play().catch(() => {});
-      }
+      if (isPlaying) audio.play().catch(() => {});
     };
   };
 
-  /* ======================
-     LOAD MUSIC LIST
-  ====================== */
-  const loadMusic = async () => {
-    try {
-      const res = await axios.get(`${API}/api/music/list/${roomId}`, {
-        headers: { userid: currentUser.id },
-      });
-      setMusicList(res.data.data || []);
-    } catch (err) {
-      console.error("❌ Load music list error", err);
-    }
+  /* 📄 Load list */
+  const loadList = async () => {
+    const res = await fetchMusicList(roomId, currentUser.id);
+    setMusicList(res.data.data || []);
   };
 
-  /* ======================
-     UPLOAD MUSIC (DJ ONLY)
-  ====================== */
-  const uploadMusic = async (file) => {
-    if (!file || !isDJ) return;
-
-    const form = new FormData();
-    form.append("music", file);
-    form.append("userId", currentUser.id);
-
-    await axios.post(`${API}/api/music/upload/${roomId}`, form);
-    loadMusic();
+  /* 📤 Upload */
+  const onUpload = async (file) => {
+    if (!isDJ || !file) return;
+    await uploadMusic(roomId, file, currentUser.id);
+    loadList();
   };
 
-  /* ======================
-     DJ CONTROLS (HTTP → SERVER)
-  ====================== */
-  const play = () =>
-    axios.post(`${API}/api/music/play/${roomId}`, {
-      userId: currentUser.id,
-    });
-
-  const pause = () =>
-    axios.post(`${API}/api/music/pause/${roomId}`, {
-      userId: currentUser.id,
-      pausedAt: audioRef.current?.currentTime || 0,
-    });
-
-  const resume = () =>
-    axios.post(`${API}/api/music/resume/${roomId}`, {
-      userId: currentUser.id,
-    });
-
-  const stop = () =>
-    axios.post(`${API}/api/music/stop/${roomId}`, {
-      userId: currentUser.id,
-    });
-
-  /* ======================
-     SOCKET EVENTS (SERVER AUTHORITY)
-  ====================== */
+  /* 🔊 Socket authority */
   useEffect(() => {
     if (!socket) return;
 
     socket.on("music:play", (data) => {
       const audio = audioRef.current;
-      if (!audio) return;
-
-      setPlayedBy(data.playedBy);
-      setStartedAt(data.startedAt);
-      setIsPlaying(true);
-      setCurrentSong(data.musicFile?.name);
-
       audio.src = data.musicUrl;
       audio.currentTime = (Date.now() - data.startedAt) / 1000;
       audio.play().catch(() => {});
+
+      setCurrentSong(data.musicFile?.name);
+      setStartedAt(data.startedAt);
+      setIsPlaying(true);
       lockAudio();
     });
 
@@ -129,24 +73,18 @@ export default function MusicPlayer({
 
     socket.on("music:resumed", ({ startedAt }) => {
       const audio = audioRef.current;
-      if (!audio) return;
-
-      setStartedAt(startedAt);
-      setIsPlaying(true);
-
       audio.currentTime = (Date.now() - startedAt) / 1000;
       audio.play().catch(() => {});
+      setStartedAt(startedAt);
+      setIsPlaying(true);
       lockAudio();
     });
 
     socket.on("music:stopped", () => {
       const audio = audioRef.current;
-      if (!audio) return;
-
       audio.pause();
       audio.src = "";
       setCurrentSong(null);
-      setPlayedBy(null);
       setIsPlaying(false);
     });
 
@@ -154,13 +92,6 @@ export default function MusicPlayer({
       if (!state.musicUrl) return;
 
       const audio = audioRef.current;
-      if (!audio) return;
-
-      setPlayedBy(state.playedBy);
-      setStartedAt(state.startedAt);
-      setIsPlaying(state.isPlaying);
-      setCurrentSong(state.musicFile?.name);
-
       audio.src = state.musicUrl;
 
       if (state.isPlaying && state.startedAt) {
@@ -168,23 +99,17 @@ export default function MusicPlayer({
         audio.play().catch(() => {});
       }
 
+      setStartedAt(state.startedAt);
+      setIsPlaying(state.isPlaying);
+      setCurrentSong(state.musicFile?.name);
       lockAudio();
     });
 
-    return () => {
-      socket.off("music:play");
-      socket.off("music:paused");
-      socket.off("music:resumed");
-      socket.off("music:stopped");
-      socket.off("room:musicState");
-    };
+    return () => socket.removeAllListeners();
   }, [socket, startedAt, isPlaying]);
 
-  /* ======================
-     INIT
-  ====================== */
   useEffect(() => {
-    loadMusic();
+    loadList();
   }, []);
 
   return (
@@ -193,51 +118,61 @@ export default function MusicPlayer({
 
       <h3 className="text-sm font-semibold mb-2">🎵 Room Music</h3>
 
-      {/* 🎧 DJ UPLOAD */}
+      {/* DJ Upload */}
       {isDJ && (
         <input
           type="file"
           accept="audio/*"
-          onChange={(e) => uploadMusic(e.target.files[0])}
+          onChange={(e) => onUpload(e.target.files[0])}
           className="text-xs mb-3"
         />
       )}
 
-      {/* ▶️ CURRENT TRACK */}
       {currentSong && (
         <div className="text-xs text-green-400 mb-2">
-          ▶️ Playing: {currentSong}
+          ▶ Playing: {currentSong}
         </div>
       )}
 
-      {/* 🎚 DJ CONTROLS */}
+      {/* DJ Controls */}
       {isDJ && (
         <div className="flex gap-2 mb-3">
           {!isPlaying ? (
-            <button onClick={play} className="bg-green-600 px-3 py-1 rounded">
+            <button
+              onClick={() => playMusic(roomId, currentUser.id)}
+              className="bg-green-600 px-3 py-1 rounded"
+            >
               Play
             </button>
           ) : (
-            <button onClick={pause} className="bg-yellow-600 px-3 py-1 rounded">
+            <button
+              onClick={() =>
+                pauseMusic(roomId, currentUser.id, audioRef.current.currentTime)
+              }
+              className="bg-yellow-600 px-3 py-1 rounded"
+            >
               Pause
             </button>
           )}
-          <button onClick={resume} className="bg-blue-600 px-3 py-1 rounded">
+          <button
+            onClick={() => resumeMusic(roomId, currentUser.id)}
+            className="bg-blue-600 px-3 py-1 rounded"
+          >
             Resume
           </button>
-          <button onClick={stop} className="bg-red-600 px-3 py-1 rounded">
+          <button
+            onClick={() => stopMusic(roomId, currentUser.id)}
+            className="bg-red-600 px-3 py-1 rounded"
+          >
             Stop
           </button>
         </div>
       )}
 
-      {/* 📄 MUSIC LIST (VIEW ONLY) */}
+      {/* List (view only) */}
       <div className="space-y-2 max-h-40 overflow-y-auto">
         {musicList.map((m) => (
-          <div
-            key={m._id}
-            className="bg-gray-800 px-2 py-1 rounded text-xs truncate"
-          >
+          <div key={m._id} className="bg-gray-800 px-2 py-1 rounded text-xs">
             {m.originalName}
           </div>
         ))}
