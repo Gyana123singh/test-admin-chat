@@ -920,6 +920,7 @@ export default function RoomPage() {
           roomId={roomId}
           socket={socketRef.current}
           currentUser={currentUser}
+          isHost={isHost} // ✅ ADD THIS
         />
       )}
 

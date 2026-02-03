@@ -5,7 +5,12 @@ import axios from "axios";
 
 const API = "https://api.dilvoicechat.fun";
 
-export default function MusicPlayer({ roomId, socket, currentUser }) {
+export default function MusicPlayer({
+  roomId,
+  socket,
+  currentUser,
+  isHost, // ✅ DJ identity comes from RoomPage
+}) {
   const audioRef = useRef(null);
 
   const [musicList, setMusicList] = useState([]);
@@ -14,10 +19,10 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
   const [startedAt, setStartedAt] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const isDJ = playedBy === currentUser.id;
+  const isDJ = isHost;
 
   /* ======================
-     HARD LOCK AUDIO (LISTENER ONLY)
+     HARD LOCK AUDIO (LISTENERS)
   ====================== */
   const lockAudio = () => {
     const audio = audioRef.current;
@@ -26,10 +31,12 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
     audio.controls = false;
     audio.disableRemotePlayback = true;
 
+    // ❌ Prevent seeking
     audio.onseeking = () => {
       audio.currentTime = (Date.now() - startedAt) / 1000;
     };
 
+    // ❌ Prevent pause by listeners
     audio.onpause = () => {
       if (isPlaying) {
         audio.play().catch(() => {});
@@ -38,16 +45,13 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
   };
 
   /* ======================
-     LOAD MUSIC LIST (DJ ONLY)
+     LOAD MUSIC LIST
   ====================== */
   const loadMusic = async () => {
     try {
-      const res = await axios.get(
-        `${API}/api/music/list/${roomId}`,
-        {
-          headers: { userid: currentUser.id },
-        }
-      );
+      const res = await axios.get(`${API}/api/music/list/${roomId}`, {
+        headers: { userid: currentUser.id },
+      });
       setMusicList(res.data.data || []);
     } catch (err) {
       console.error("❌ Load music list error", err);
@@ -64,16 +68,12 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
     form.append("music", file);
     form.append("userId", currentUser.id);
 
-    await axios.post(
-      `${API}/api/music/upload/${roomId}`,
-      form
-    );
-
+    await axios.post(`${API}/api/music/upload/${roomId}`, form);
     loadMusic();
   };
 
   /* ======================
-     DJ CONTROLS
+     DJ CONTROLS (HTTP → SERVER)
   ====================== */
   const play = () =>
     axios.post(`${API}/api/music/play/${roomId}`, {
@@ -83,7 +83,7 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
   const pause = () =>
     axios.post(`${API}/api/music/pause/${roomId}`, {
       userId: currentUser.id,
-      pausedAt: audioRef.current.currentTime,
+      pausedAt: audioRef.current?.currentTime || 0,
     });
 
   const resume = () =>
@@ -136,6 +136,8 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
 
     socket.on("music:stopped", () => {
       const audio = audioRef.current;
+      if (!audio) return;
+
       audio.pause();
       audio.src = "";
       setCurrentSong(null);
@@ -147,6 +149,7 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
       if (!state.musicUrl) return;
 
       const audio = audioRef.current;
+      if (!audio) return;
 
       setPlayedBy(state.playedBy);
       setStartedAt(state.startedAt);
@@ -185,7 +188,7 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
 
       <h3 className="text-sm font-semibold mb-2">🎵 Room Music</h3>
 
-      {/* DJ UPLOAD */}
+      {/* 🎧 DJ UPLOAD */}
       {isDJ && (
         <input
           type="file"
@@ -195,47 +198,35 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
         />
       )}
 
-      {/* CURRENT TRACK */}
+      {/* ▶️ CURRENT TRACK */}
       {currentSong && (
         <div className="text-xs text-green-400 mb-2">
           ▶️ Playing: {currentSong}
         </div>
       )}
 
-      {/* DJ CONTROLS */}
+      {/* 🎚 DJ CONTROLS */}
       {isDJ && (
         <div className="flex gap-2 mb-3">
           {!isPlaying ? (
-            <button
-              onClick={play}
-              className="bg-green-600 px-3 py-1 rounded"
-            >
+            <button onClick={play} className="bg-green-600 px-3 py-1 rounded">
               Play
             </button>
           ) : (
-            <button
-              onClick={pause}
-              className="bg-yellow-600 px-3 py-1 rounded"
-            >
+            <button onClick={pause} className="bg-yellow-600 px-3 py-1 rounded">
               Pause
             </button>
           )}
-          <button
-            onClick={resume}
-            className="bg-blue-600 px-3 py-1 rounded"
-          >
+          <button onClick={resume} className="bg-blue-600 px-3 py-1 rounded">
             Resume
           </button>
-          <button
-            onClick={stop}
-            className="bg-red-600 px-3 py-1 rounded"
-          >
+          <button onClick={stop} className="bg-red-600 px-3 py-1 rounded">
             Stop
           </button>
         </div>
       )}
 
-      {/* MUSIC LIST (VIEW ONLY FOR LISTENERS) */}
+      {/* 📄 MUSIC LIST (VIEW ONLY) */}
       <div className="space-y-2 max-h-40 overflow-y-auto">
         {musicList.map((m) => (
           <div
