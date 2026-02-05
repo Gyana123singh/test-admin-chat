@@ -481,7 +481,7 @@ export default function RoomPage() {
       const rightUserId = participants[1].id;
 
       await axios.post(
-        "https://home-service-vndv.onrender.com/api/pk/create-pk",
+        "https://api.dilvoicechat.fun/api/pk/create-pk",
         {
           roomId,
           leftUserId,
