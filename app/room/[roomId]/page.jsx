@@ -56,6 +56,10 @@ export default function RoomPage() {
   const [coins, setCoins] = useState(0);
   const [showRecharge, setShowRecharge] = useState(false);
   const [rechargeInfo, setRechargeInfo] = useState(null);
+  // 🥊 PK STATES
+  const [activePK, setActivePK] = useState(null);
+  const [pkScores, setPkScores] = useState({ left: 0, right: 0 });
+  const [pkWinner, setPkWinner] = useState(null);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -464,6 +468,38 @@ export default function RoomPage() {
     }, 1000);
   };
 
+  const startPK = async () => {
+    try {
+      if (!token || !roomId) return;
+
+      if (participants.length < 2) {
+        alert("Need at least 2 users for PK");
+        return;
+      }
+
+      const leftUserId = participants[0].id;
+      const rightUserId = participants[1].id;
+
+      await axios.post(
+        "https://home-service-vndv.onrender.com/api/pk/create-pk",
+        {
+          roomId,
+          leftUserId,
+          rightUserId,
+          mode: "coins",
+          duration: 60,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      console.log("✅ PK start request sent");
+    } catch (err) {
+      console.error("❌ Start PK error:", err.response?.data || err.message);
+      alert(err.response?.data?.message || "Failed to start PK");
+    }
+  };
   /* ================= JOIN ROOM ================= */
   const handleJoin = async () => {
     if (joined || !currentUser) return;
@@ -612,6 +648,29 @@ export default function RoomPage() {
         }
       },
     );
+    // 🥊 PK EVENTS
+    socket.on("pk:started", (pk) => {
+      console.log("🥊 PK Started:", pk);
+      setActivePK(pk);
+      setPkScores({
+        left: pk.leftUser?.score || 0,
+        right: pk.rightUser?.score || 0,
+      });
+      setPkWinner(null);
+    });
+
+    socket.on("pk:score:update", ({ leftScore, rightScore }) => {
+      setPkScores({ left: leftScore, right: rightScore });
+    });
+
+    socket.on("pk:ended", ({ pk, winnerId }) => {
+      console.log("🏁 PK Ended:", pk, winnerId);
+      setActivePK(null);
+      setPkWinner(winnerId || null);
+    });
+
+    // Ask server if PK already running (on join/reconnect)
+    socket.emit("pk:getActive", { roomId });
 
     console.log("✅ All listeners registered");
 
@@ -623,6 +682,9 @@ export default function RoomPage() {
       socket.off("message:edited");
       socket.off("message:deleted");
       socket.off("message:typing");
+      socket.off("pk:started");
+      socket.off("pk:score:update");
+      socket.off("pk:ended");
     };
   }, [joined, currentUser, roomId]);
 
@@ -805,7 +867,45 @@ export default function RoomPage() {
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
+
+        {joined &&
+          String(room?.host) === String(currentUser.id) &&
+          !activePK && (
+            <button
+              onClick={startPK}
+              className="ml-2 px-3 py-1 rounded text-sm font-medium bg-red-600 hover:bg-red-700"
+            >
+              🥊 Start PK
+            </button>
+          )}
       </div>
+
+      {/* 🥊 PK PANEL */}
+      {activePK && (
+        <div className="bg-gray-900 p-4 border-b border-red-600">
+          <h2 className="text-center text-lg font-bold text-red-400">
+            🥊 PK Battle
+          </h2>
+
+          <div className="flex justify-between mt-3">
+            <div className="text-center flex-1">
+              <p className="font-semibold">Left</p>
+              <p className="text-2xl text-yellow-400">{pkScores.left}</p>
+            </div>
+
+            <div className="text-center flex-1">
+              <p className="font-semibold">Right</p>
+              <p className="text-2xl text-yellow-400">{pkScores.right}</p>
+            </div>
+          </div>
+
+          {pkWinner && (
+            <p className="text-center mt-3 text-green-400 font-bold">
+              🏆 Winner: {pkWinner}
+            </p>
+          )}
+        </div>
+      )}
 
       {joined && (
         <div className="p-4 text-sm text-gray-300 border-b border-gray-700">
