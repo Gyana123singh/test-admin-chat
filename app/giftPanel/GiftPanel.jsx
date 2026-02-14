@@ -47,6 +47,7 @@ export default function GiftPanel({ roomId, socket }) {
       roomId,
       giftId: selectedGift._id,
       sendType,
+      quantity: comboCount || 1, // ✅ send quantity
     });
 
     // keep combo running if user sends again quickly
@@ -123,9 +124,7 @@ export default function GiftPanel({ roomId, socket }) {
               : "bg-gray-700 text-gray-400 cursor-not-allowed"
           }`}
         >
-          {selectedGift
-            ? `Send ${selectedGift.name}`
-            : "Select a gift to send"}
+          {selectedGift ? `Send ${selectedGift.name}` : "Select a gift to send"}
         </button>
       </div>
     </div>

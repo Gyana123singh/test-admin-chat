@@ -480,13 +480,19 @@ export default function RoomPage() {
       const leftUserId = participants[0].id;
       const rightUserId = participants[1].id;
 
-      await axios.post("https://api.dilvoicechat.fun/api/pk/create-pk", {
-        roomId,
-        leftUserId,
-        rightUserId,
-        mode: "coins",
-        duration: 60,
-      });
+      await axios.post(
+        "https://api.dilvoicechat.fun/api/pk/create-pk",
+        {
+          roomId,
+          leftUserId,
+          rightUserId,
+          mode: "coins",
+          duration: 60,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
 
       console.log("✅ PK start request sent");
     } catch (err) {
