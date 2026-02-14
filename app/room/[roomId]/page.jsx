@@ -500,6 +500,23 @@ export default function RoomPage() {
       alert(err.response?.data?.message || "Failed to start PK");
     }
   };
+
+  const contributeToPK = (side) => {
+    if (!socketRef.current || !activePK) return;
+
+    const targetUserId =
+      side === "left" ? activePK.leftUser.userId : activePK.rightUser.userId;
+
+    socketRef.current.emit("pk:contribute", {
+      pkId: activePK._id,
+      toUserId: targetUserId,
+      value: 1, // you can change this (coins, gift value, etc.)
+      giftId: null, // or pass real giftId if using gifts
+    });
+
+    console.log("✅ Sent PK contribute to", side);
+  };
+
   /* ================= JOIN ROOM ================= */
   const handleJoin = async () => {
     if (joined || !currentUser) return;
@@ -649,6 +666,7 @@ export default function RoomPage() {
       },
     );
     // 🥊 PK EVENTS
+    // 🥊 PK EVENTS
     socket.on("pk:started", (pk) => {
       console.log("🥊 PK Started:", pk);
       setActivePK(pk);
@@ -659,18 +677,17 @@ export default function RoomPage() {
       setPkWinner(null);
     });
 
-    socket.on("pk:score:update", ({ leftScore, rightScore }) => {
+    socket.on("pk:update", ({ leftScore, rightScore }) => {
+      console.log("📊 PK Update:", leftScore, rightScore);
       setPkScores({ left: leftScore, right: rightScore });
     });
 
-    socket.on("pk:ended", ({ pk, winnerId }) => {
-      console.log("🏁 PK Ended:", pk, winnerId);
+    socket.on("pk:ended", ({ pkId, leftScore, rightScore, winner }) => {
+      console.log("🏁 PK Ended:", pkId, winner);
+      setPkScores({ left: leftScore, right: rightScore });
+      setPkWinner(winner || null);
       setActivePK(null);
-      setPkWinner(winnerId || null);
     });
-
-    // Ask server if PK already running (on join/reconnect)
-    socket.emit("pk:getActive", { roomId });
 
     console.log("✅ All listeners registered");
 
@@ -683,7 +700,7 @@ export default function RoomPage() {
       socket.off("message:deleted");
       socket.off("message:typing");
       socket.off("pk:started");
-      socket.off("pk:score:update");
+      socket.off("pk:update");
       socket.off("pk:ended");
     };
   }, [joined, currentUser, roomId]);
@@ -887,15 +904,29 @@ export default function RoomPage() {
             🥊 PK Battle
           </h2>
 
-          <div className="flex justify-between mt-3">
+          <div className="flex justify-between mt-3 gap-4">
+            {/* LEFT */}
             <div className="text-center flex-1">
               <p className="font-semibold">Left</p>
               <p className="text-2xl text-yellow-400">{pkScores.left}</p>
+              <button
+                onClick={() => contributeToPK("left")}
+                className="mt-2 px-3 py-1 bg-green-600 rounded text-sm hover:bg-green-700"
+              >
+                ➕ Support Left
+              </button>
             </div>
 
+            {/* RIGHT */}
             <div className="text-center flex-1">
               <p className="font-semibold">Right</p>
               <p className="text-2xl text-yellow-400">{pkScores.right}</p>
+              <button
+                onClick={() => contributeToPK("right")}
+                className="mt-2 px-3 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700"
+              >
+                ➕ Support Right
+              </button>
             </div>
           </div>
 
