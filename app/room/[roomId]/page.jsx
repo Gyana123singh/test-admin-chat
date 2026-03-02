@@ -8,7 +8,7 @@ import { io } from "socket.io-client";
 import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
 import AddFriend from "@/app/components/AddFriend";
 import MusicPlayer from "../musicPlayer";
-import GiftPanel from "@/app/giftPanel/GiftPanel";
+import GiftPanel from "../../giftPanel/GiftPanel";
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.dilvoicechat.fun";
@@ -50,16 +50,154 @@ export default function RoomPage() {
   const videoRef = useRef(null);
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoVisible, setVideoVisible] = useState(false);
-  const [isHost, setIsHost] = useState(false);
+
   // 🎁 GIFT STATES
+  const [showGifts, setShowGifts] = useState(false);
   const [giftQueue, setGiftQueue] = useState([]);
   const [coins, setCoins] = useState(0);
-  const [showRecharge, setShowRecharge] = useState(false);
-  const [rechargeInfo, setRechargeInfo] = useState(null);
+
   // 🥊 PK STATES
   const [activePK, setActivePK] = useState(null);
   const [pkScores, setPkScores] = useState({ left: 0, right: 0 });
   const [pkWinner, setPkWinner] = useState(null);
+  const [showPKSetup, setShowPKSetup] = useState(false);
+  const [pkMode, setPkMode] = useState("votes"); // or "coins" or "earning"
+  const [pkDuration, setPkDuration] = useState(60); // seconds
+  const [pkLeftUser, setPkLeftUser] = useState(null);
+  const [pkRightUser, setPkRightUser] = useState(null);
+
+  const total = pkScores.left + pkScores.right || 1;
+  const leftPercent = (pkScores.left / total) * 100;
+  const rightPercent = (pkScores.right / total) * 100;
+
+  useEffect(() => {
+    if (!socketRef.current || !joined) return;
+
+    const socket = socketRef.current;
+
+    console.log("🧩 Registering PK listeners");
+
+    socket.off("pk:started");
+    socket.off("pk:update");
+    socket.off("pk:ended");
+
+    socket.on("pk:started", (pk) => {
+      console.log("🔥 PK STARTED RECEIVED:", pk);
+      setActivePK(pk);
+      setPkScores({
+        left: pk.leftUser?.score || 0,
+        right: pk.rightUser?.score || 0,
+      });
+      setPkWinner(null);
+    });
+
+    socket.on("pk:update", ({ leftScore, rightScore }) => {
+      console.log("📊 PK UPDATE:", leftScore, rightScore);
+      setPkScores({ left: leftScore, right: rightScore });
+    });
+
+    socket.on("pk:ended", ({ leftScore, rightScore, winner }) => {
+      console.log("🏁 PK ENDED:", winner);
+      setPkScores({ left: leftScore, right: rightScore });
+      setPkWinner(winner);
+
+      setTimeout(() => {
+        setActivePK(null);
+        setPkWinner(null);
+      }, 5000);
+    });
+
+    return () => {
+      socket.off("pk:started");
+      socket.off("pk:update");
+      socket.off("pk:ended");
+    };
+  }, [joined]);
+
+  const DEFAULT_PK_GIFT_ID = "698e317478ac4b31e0840b6c"; // from your DB
+  const [pkVoteTarget, setPkVoteTarget] = useState(null); // add this state
+
+  const supportPK = (side) => {
+    if (!socketRef.current || !activePK) return;
+
+    const targetUserId =
+      side === "left" ? activePK.leftUser?.userId : activePK.rightUser?.userId;
+
+    if (!targetUserId) {
+      alert("PK target user not found for " + side);
+      return;
+    }
+
+    // 🗳️ VOTE MODE = free vote
+    if (activePK.mode === "votes") {
+      socketRef.current.emit("pk:vote", {
+        roomId,
+        pkId: activePK._id,
+        toUserId: targetUserId,
+      });
+      return;
+    }
+
+    // 💰 COINS / EARNING MODE = open gift panel
+    setPkVoteTarget(targetUserId);
+    setShowGifts(true);
+  };
+
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    socketRef.current.on("pk:mvp", ({ message }) => {
+      alert(message); // or toast
+    });
+
+    return () => {
+      socketRef.current.off("pk:mvp");
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!socketRef.current || !joined) return;
+
+    const socket = socketRef.current;
+
+    const handleGiftReceived = (data) => {
+      console.log("🎁 Gift received:", data);
+
+      setGiftQueue((prev) => [...prev, data]);
+
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        setGiftQueue((prev) => prev.slice(1));
+      }, 3000);
+    };
+
+    socket.on("gift:received", handleGiftReceived);
+
+    return () => {
+      socket.off("gift:received", handleGiftReceived);
+    };
+  }, [joined]);
+
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    const socket = socketRef.current;
+
+    socket.on("gift:error", ({ message }) => {
+      console.error("🎁 Gift error:", message);
+      alert("Gift error: " + message);
+    });
+
+    socket.on("gift:success", (data) => {
+      console.log("🎁 Gift success:", data);
+      setShowGifts(false); // ✅ close only on success
+    });
+
+    return () => {
+      socket.off("gift:error");
+      socket.off("gift:success");
+    };
+  }, [joined]);
 
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
@@ -75,6 +213,8 @@ export default function RoomPage() {
         username: decoded.username || decoded.name || "User",
         avatar: decoded.avatar || "/avatar.png",
       });
+
+      // ✅ SET COINS HERE (CORRECT PLACE)
       setCoins(decoded.coins || 0);
     } catch (err) {
       console.error("❌ Token decode error:", err);
@@ -110,7 +250,9 @@ export default function RoomPage() {
     await axios.post(
       `https://api.dilvoicechat.fun/api/video/upload/${roomId}`,
       form,
-      { headers: { Authorization: `Bearer ${token}` } },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
     );
 
     alert("Video uploaded");
@@ -468,55 +610,6 @@ export default function RoomPage() {
     }, 1000);
   };
 
-  const startPK = async () => {
-    try {
-      if (!token || !roomId) return;
-
-      if (participants.length < 2) {
-        alert("Need at least 2 users for PK");
-        return;
-      }
-
-      const leftUserId = participants[0].id;
-      const rightUserId = participants[1].id;
-
-      await axios.post(
-        "https://api.dilvoicechat.fun/api/pk/create-pk",
-        {
-          roomId,
-          leftUserId,
-          rightUserId,
-          mode: "coins",
-          duration: 60,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      console.log("✅ PK start request sent");
-    } catch (err) {
-      console.error("❌ Start PK error:", err.response?.data || err.message);
-      alert(err.response?.data?.message || "Failed to start PK");
-    }
-  };
-
-  const contributeToPK = (side) => {
-    if (!socketRef.current || !activePK) return;
-
-    const targetUserId =
-      side === "left" ? activePK.leftUser.userId : activePK.rightUser.userId;
-
-    socketRef.current.emit("pk:contribute", {
-      pkId: activePK._id,
-      toUserId: targetUserId,
-      value: 1, // you can change this (coins, gift value, etc.)
-      giftId: null, // or pass real giftId if using gifts
-    });
-
-    console.log("✅ Sent PK contribute to", side);
-  };
-
   /* ================= JOIN ROOM ================= */
   const handleJoin = async () => {
     if (joined || !currentUser) return;
@@ -665,29 +758,6 @@ export default function RoomPage() {
         }
       },
     );
-    // 🥊 PK EVENTS
-    // 🥊 PK EVENTS
-    socket.on("pk:started", (pk) => {
-      console.log("🥊 PK Started:", pk);
-      setActivePK(pk);
-      setPkScores({
-        left: pk.leftUser?.score || 0,
-        right: pk.rightUser?.score || 0,
-      });
-      setPkWinner(null);
-    });
-
-    socket.on("pk:update", ({ leftScore, rightScore }) => {
-      console.log("📊 PK Update:", leftScore, rightScore);
-      setPkScores({ left: leftScore, right: rightScore });
-    });
-
-    socket.on("pk:ended", ({ pkId, leftScore, rightScore, winner }) => {
-      console.log("🏁 PK Ended:", pkId, winner);
-      setPkScores({ left: leftScore, right: rightScore });
-      setPkWinner(winner || null);
-      setActivePK(null);
-    });
 
     console.log("✅ All listeners registered");
 
@@ -699,48 +769,8 @@ export default function RoomPage() {
       socket.off("message:edited");
       socket.off("message:deleted");
       socket.off("message:typing");
-      socket.off("pk:started");
-      socket.off("pk:update");
-      socket.off("pk:ended");
     };
   }, [joined, currentUser, roomId]);
-
-  // =====================
-  // 🎁 GIFT SOCKET EVENTS
-  // =====================
-  useEffect(() => {
-    if (!socketRef.current || !joined) return;
-
-    const socket = socketRef.current;
-
-    // 🎬 receive gift animation
-    socket.on("gift:animation", (data) => {
-      setGiftQueue((prev) => [...prev, data]);
-
-      setTimeout(() => {
-        setGiftQueue((prev) => prev.slice(1));
-      }, 3000);
-    });
-
-    // 💰 live coins update
-    socket.on("coins:update", ({ coins }) => {
-      setCoins(coins);
-    });
-
-    socket.on("gift:error", ({ message }) => {
-      alert(message);
-    });
-    socket.on("gift:recharge", (data) => {
-      setRechargeInfo(data);
-      setShowRecharge(true);
-    });
-    return () => {
-      socket.off("gift:animation");
-      socket.off("coins:update");
-      socket.off("gift:recharge");
-      socket.off("gift:error");
-    };
-  }, [joined]);
 
   /* ================= TOGGLE MIC ================= */
   const toggleMic = () => {
@@ -792,51 +822,6 @@ export default function RoomPage() {
         style={{ display: "none" }}
       />
 
-      {/* 💳 RECHARGE POPUP */}
-      {showRecharge && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
-          <div className="bg-gray-900 p-6 rounded w-80 text-center">
-            <h2 className="text-lg font-semibold">💰 Insufficient Coins</h2>
-            <p className="text-sm mt-2">
-              Need <b>{rechargeInfo?.requiredCoins}</b> coins
-              <br />
-              You have <b>{rechargeInfo?.currentCoins}</b>
-            </p>
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={() => setShowRecharge(false)}
-                className="flex-1 bg-gray-700 py-2 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => (window.location.href = "/recharge")}
-                className="flex-1 bg-yellow-500 text-black py-2 rounded"
-              >
-                Recharge
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 🎁 GIFT FLOATING ANIMATION */}
-      {giftQueue.map((gift, index) => (
-        <div
-          key={index}
-          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-gift"
-        >
-          <img
-            src={gift.gift.icon}
-            alt={gift.gift.name}
-            className="w-24 mx-auto"
-          />
-          <p className="text-center text-sm text-white mt-1">
-            {gift.sender.username} sent {gift.gift.name}
-          </p>
-        </div>
-      ))}
-
       {error && (
         <div className="bg-red-500 p-3 text-sm text-center sticky top-0 z-50">
           {error}
@@ -868,8 +853,6 @@ export default function RoomPage() {
             unoptimized
           />
           <p className="text-xs text-gray-400 mt-1">{currentUser.username}</p>
-          {/* 💰 COINS DISPLAY */}
-          <p className="text-xs text-yellow-400 font-semibold">💰 {coins}</p>
         </div>
         <p className="text-sm text-gray-300">{room.roomId}</p>
 
@@ -884,59 +867,17 @@ export default function RoomPage() {
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
-
-        {joined &&
-          String(room?.host) === String(currentUser.id) &&
-          !activePK && (
-            <button
-              onClick={startPK}
-              className="ml-2 px-3 py-1 rounded text-sm font-medium bg-red-600 hover:bg-red-700"
-            >
-              🥊 Start PK
-            </button>
-          )}
       </div>
-
-      {/* 🥊 PK PANEL */}
-      {activePK && (
-        <div className="bg-gray-900 p-4 border-b border-red-600">
-          <h2 className="text-center text-lg font-bold text-red-400">
-            🥊 PK Battle
-          </h2>
-
-          <div className="flex justify-between mt-3 gap-4">
-            {/* LEFT */}
-            <div className="text-center flex-1">
-              <p className="font-semibold">Left</p>
-              <p className="text-2xl text-yellow-400">{pkScores.left}</p>
-              <button
-                onClick={() => contributeToPK("left")}
-                className="mt-2 px-3 py-1 bg-green-600 rounded text-sm hover:bg-green-700"
-              >
-                ➕ Support Left
-              </button>
-            </div>
-
-            {/* RIGHT */}
-            <div className="text-center flex-1">
-              <p className="font-semibold">Right</p>
-              <p className="text-2xl text-yellow-400">{pkScores.right}</p>
-              <button
-                onClick={() => contributeToPK("right")}
-                className="mt-2 px-3 py-1 bg-blue-600 rounded text-sm hover:bg-blue-700"
-              >
-                ➕ Support Right
-              </button>
-            </div>
-          </div>
-
-          {pkWinner && (
-            <p className="text-center mt-3 text-green-400 font-bold">
-              🏆 Winner: {pkWinner}
-            </p>
-          )}
-        </div>
-      )}
+      <div className="flex w-full h-4 bg-gray-700 rounded overflow-hidden">
+        <div
+          className="bg-green-500 transition-all duration-500"
+          style={{ width: `${leftPercent}%` }}
+        />
+        <div
+          className="bg-blue-500 transition-all duration-500"
+          style={{ width: `${rightPercent}%` }}
+        />
+      </div>
 
       {joined && (
         <div className="p-4 text-sm text-gray-300 border-b border-gray-700">
@@ -1068,19 +1009,47 @@ export default function RoomPage() {
           </button>
         </div>
       )}
+      <button
+        onClick={() => {
+          if (participants.length === 0) {
+            alert("No one in room to send gift to");
+            return;
+          }
+          setShowGifts((s) => !s);
+        }}
+        className="p-3 rounded-full hover:bg-gray-700 transition flex-1 flex justify-center"
+      >
+        🎁
+      </button>
+
+      {giftQueue.map((g, i) => (
+        <div
+          key={i}
+          className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-black/80 p-3 rounded"
+        >
+          <img src={g.gift.icon} className="w-20 mx-auto" />
+          <p className="text-center text-sm">
+            {g.fromUsername} sent {g.gift.name} x{g.quantity}
+          </p>
+        </div>
+      ))}
+
+      {showGifts && joined && socketRef.current && (
+        <GiftPanel
+          roomId={roomId}
+          socket={socketRef.current}
+          onClose={() => setShowGifts(false)}
+          pkTargetUserId={pkVoteTarget}
+          pkId={activePK?._id}
+          pkMode={activePK?.mode}
+          participants={participants} // 👈 ADD THIS
+        />
+      )}
 
       {/* 🎵 MUSIC PLAYER */}
 
       {joined && socketRef.current && currentUser && (
         <MusicPlayer
-          roomId={roomId}
-          socket={socketRef.current}
-          currentUser={currentUser}
-        />
-      )}
-
-      {joined && (
-        <GiftPanel
           roomId={roomId}
           socket={socketRef.current}
           currentUser={currentUser}
@@ -1120,6 +1089,182 @@ export default function RoomPage() {
             >
               Send
             </button>
+          </div>
+        </div>
+      )}
+      {joined && String(room?.host) === String(currentUser.id) && !activePK && (
+        <button
+          onClick={() => setShowPKSetup(true)}
+          className="bg-red-600 px-3 py-1 rounded text-sm"
+        >
+          🥊 Start PK
+        </button>
+      )}
+
+      {activePK && (
+        <div className="bg-gray-900 p-4 border-b border-red-600">
+          <h2 className="text-center text-lg font-bold text-red-400">
+            🥊 PK Battle
+          </h2>
+
+          <div className="flex justify-between mt-3 gap-4">
+            <div className="text-center flex-1">
+              <p>Left</p>
+              <p className="text-2xl text-yellow-400">{pkScores.left}</p>
+              <button
+                onClick={() => supportPK("left")}
+                className="mt-2 px-3 py-1 bg-green-600 rounded"
+              >
+                Support Left
+              </button>
+            </div>
+
+            <div className="text-center flex-1">
+              <p>Right</p>
+              <p className="text-2xl text-yellow-400">{pkScores.right}</p>
+              <button
+                onClick={() => supportPK("right")}
+                className="mt-2 px-3 py-1 bg-blue-600 rounded"
+              >
+                Support Right
+              </button>
+            </div>
+          </div>
+
+          {pkWinner && (
+            <p className="text-center mt-3 text-green-400 font-bold">
+              🏆 Winner: {pkWinner}
+            </p>
+          )}
+        </div>
+      )}
+
+      {showPKSetup && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center">
+          <div className="bg-gray-900 p-5 rounded w-80">
+            <h2 className="text-lg font-bold mb-3 text-center">🥊 Start PK</h2>
+
+            <p className="text-sm mb-2">Select Players</p>
+            <select
+              className="w-full mb-2 p-2 bg-gray-800 rounded"
+              onChange={(e) =>
+                setPkLeftUser(participants.find((u) => u.id === e.target.value))
+              }
+            >
+              <option value="">Select Left</option>
+              {participants.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.username}
+                </option>
+              ))}
+            </select>
+
+            <select
+              className="w-full mb-3 p-2 bg-gray-800 rounded"
+              onChange={(e) =>
+                setPkRightUser(
+                  participants.find((u) => u.id === e.target.value),
+                )
+              }
+            >
+              <option value="">Select Right</option>
+              {participants.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.username}
+                </option>
+              ))}
+            </select>
+
+            <p className="text-sm mb-2">Mode</p>
+            <div className="flex gap-2 mb-3">
+              {["votes", "coins", "earning"].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setPkMode(m)}
+                  className={`flex-1 py-1 rounded ${
+                    pkMode === m ? "bg-blue-600" : "bg-gray-700"
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-sm mb-2">Time</p>
+            <div className="flex gap-2 mb-4">
+              {[15, 60, 180, 300].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setPkDuration(t)}
+                  className={`flex-1 py-1 rounded ${
+                    pkDuration === t ? "bg-green-600" : "bg-gray-700"
+                  }`}
+                >
+                  {t}s
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowPKSetup(false)}
+                className="flex-1 bg-gray-700 py-2 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!pkLeftUser || !pkRightUser) {
+                    alert("Select both users");
+                    return;
+                  }
+
+                  try {
+                    // 1️⃣ Create PK via API
+                    const res = await axios.post(
+                      "https://api.dilvoicechat.fun/api/pk/create-pk",
+                      {
+                        roomId,
+                        leftUserId: pkLeftUser.id,
+                        rightUserId: pkRightUser.id,
+                        mode: pkMode,
+                        duration: pkDuration,
+                      },
+                      { headers: { Authorization: `Bearer ${token}` } },
+                    );
+
+                    const pk = res.data.pk;
+
+                    // 2️⃣ Instantly show PK for host (no waiting for socket)
+                    setActivePK(pk);
+                    setPkScores({
+                      left: pk.leftUser?.score || 0,
+                      right: pk.rightUser?.score || 0,
+                    });
+                    setPkWinner(null);
+
+                    console.log("✅ PK created:", pk._id);
+
+                    // 3️⃣ 🔴 IMPORTANT: notify others in room via socket
+                    if (socketRef.current) {
+                      socketRef.current.emit("pk:start", {
+                        roomId,
+                        pkId: pk._id,
+                      });
+                    }
+
+                    // 4️⃣ Close setup modal
+                    setShowPKSetup(false);
+                  } catch (err) {
+                    console.error("❌ PK create error:", err);
+                    alert(err.response?.data?.message || "Failed to start PK");
+                  }
+                }}
+                className="flex-1 bg-red-600 py-2 rounded"
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}

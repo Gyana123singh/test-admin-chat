@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "https://api.dilvoicechat.fun/api/payment",
+  baseURL: "http://localhost:5005/api/payment",
 });
 
 api.interceptors.request.use((config) => {

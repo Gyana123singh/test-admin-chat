@@ -30,7 +30,7 @@ export default function CreateRoomPage() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-        }
+        },
       );
 
       // ✅ GET UUID
@@ -43,7 +43,7 @@ export default function CreateRoomPage() {
     } catch (error) {
       console.error(
         "CREATE ROOM ERROR:",
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
       alert(error.response?.data?.message || "Room creation failed");
     } finally {

@@ -58,6 +58,7 @@ export default function GiftsPage() {
       } else {
         setGifts([]);
       }
+      console.log(res.data);
     } catch (error) {
       console.error("❌ Fetch gifts failed:", error);
       setGifts([]);
