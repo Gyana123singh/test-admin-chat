@@ -19,7 +19,7 @@ export default function AddGiftPage() {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(
-        "https://api.dilvoicechat.fun/api/store-gifts/getStoreCategory"
+        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/getStoreCategory"
       );
 
       if (res.data?.success && Array.isArray(res.data.categories)) {
@@ -61,7 +61,7 @@ export default function AddGiftPage() {
       }
 
       await axios.post(
-        "https://api.dilvoicechat.fun/api/store-gifts/create",
+        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/create",
         formData,
         {
           headers: {
