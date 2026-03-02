@@ -12,14 +12,13 @@ const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/store-gifts";
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [openAddCategory, setOpenAddCategory] = useState(false);
-  const [openEdit, setOpenEdit] = useState(false);
 
-  const [selectedGift, setSelectedGift] = useState(null);
   const [gifts, setGifts] = useState([]);
   const [categories, setCategories] = useState([]);
-
   const [selectedType, setSelectedType] = useState("ALL");
   const [loading, setLoading] = useState(false);
+
+  const [previewVideo, setPreviewVideo] = useState(null); // ✅ NEW
 
   /* ===============================
      FETCH CATEGORIES
@@ -27,7 +26,6 @@ export default function GiftsPage() {
   const fetchCategories = async () => {
     try {
       const res = await axios.get(`${API_BASE}/getStoreCategory`);
-
       if (res.data?.success && Array.isArray(res.data.categories)) {
         setCategories(res.data.categories.map((c) => c.type));
       } else {
@@ -58,7 +56,6 @@ export default function GiftsPage() {
       } else {
         setGifts([]);
       }
-      console.log(res.data);
     } catch (error) {
       console.error("❌ Fetch gifts failed:", error);
       setGifts([]);
@@ -67,25 +64,16 @@ export default function GiftsPage() {
     }
   };
 
-  /* ===============================
-     INITIAL LOAD
-  =============================== */
   useEffect(() => {
     fetchCategories();
     fetchGifts("ALL");
   }, []);
 
-  /* ===============================
-     CATEGORY CHANGE
-  =============================== */
   const handleTypeChange = (type) => {
     setSelectedType(type);
     fetchGifts(type);
   };
 
-  /* ===============================
-     DELETE GIFT
-  =============================== */
   const handleDelete = async (giftId) => {
     if (!confirm("Are you sure you want to delete this gift?")) return;
 
@@ -97,6 +85,11 @@ export default function GiftsPage() {
       console.error("❌ Delete gift failed:", error);
       alert("Failed to delete gift");
     }
+  };
+
+  // ✅ Detect video
+  const isVideo = (url) => {
+    return url?.toLowerCase().endsWith(".mp4");
   };
 
   return (
@@ -158,11 +151,22 @@ export default function GiftsPage() {
 
         {gifts.map((gift) => (
           <div key={gift._id} className="bg-white rounded-xl shadow p-3">
-            <img
-              src={gift.icon || "/placeholder.png"}
-              alt={gift.name}
-              className="w-full h-28 object-contain mb-2"
-            />
+            {/* 🔥 Media Logic */}
+            {isVideo(gift.icon) ? (
+              <video
+                src={gift.icon}
+                muted
+                loop
+                className="w-full h-28 object-contain mb-2 cursor-pointer"
+                onClick={() => setPreviewVideo(gift.icon)}
+              />
+            ) : (
+              <img
+                src={gift.icon || "/placeholder.png"}
+                alt={gift.name}
+                className="w-full h-28 object-contain mb-2 cursor-pointer"
+              />
+            )}
 
             <h3 className="text-sm font-semibold">{gift.name}</h3>
             <p className="text-xs text-gray-600">{gift.category}</p>
@@ -181,6 +185,26 @@ export default function GiftsPage() {
           </div>
         ))}
       </div>
+
+      {/* 🎥 VIDEO MODAL */}
+      {previewVideo && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-xl">
+            <video
+              src={previewVideo}
+              controls
+              autoPlay
+              className="max-h-[70vh]"
+            />
+            <button
+              onClick={() => setPreviewVideo(null)}
+              className="mt-3 bg-red-500 text-white px-4 py-1 rounded"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* MODALS */}
       {openAdd && (
