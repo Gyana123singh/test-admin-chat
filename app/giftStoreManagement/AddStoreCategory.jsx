@@ -30,7 +30,7 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
       setLoading(true);
 
       const res = await axios.post(
-        "https://chat-app-1-qvl9.onrender.com/api/store-gifts/addStoreCategory",
+        "https://api.dilvoicechat.fun/api/store-gifts/addStoreCategory",
         { type }, // 🔥 send enum type
         {
           headers: {

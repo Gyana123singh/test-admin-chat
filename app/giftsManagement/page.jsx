@@ -7,7 +7,7 @@ import { Plus, Edit, Trash } from "lucide-react";
 import AddGiftModal from "../giftsManagement/AddGiftModal.jsx";
 import AddCategoryModal from "../giftsManagement/AddCategoryModal.jsx";
 
-const API_BASE = "https://chat-app-1-qvl9.onrender.com/api/gift";
+const API_BASE = "https://api.dilvoicechat.fun/api/gift";
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
