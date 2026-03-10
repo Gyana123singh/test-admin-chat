@@ -9,6 +9,9 @@ import ModalComponent from "../components/modal/ModalComponents";
 export default function CoinManagement() {
   const [openModal, setOpenModal] = useState(null);
 
+  const [email, setEmail] = useState("");
+  const [coins, setCoins] = useState("");
+
   /* ===============================
      RECHARGE PLANS (FROM BACKEND)
   =============================== */
@@ -21,7 +24,7 @@ export default function CoinManagement() {
     const fetchRechargePlans = async () => {
       try {
         const res = await axios.get(
-          "https://api.dilvoicechat.fun/api/get-recharge-plans"
+          "https://api.dilvoicechat.fun/api/get-recharge-plans",
         );
 
         if (res.data?.success) {
@@ -47,7 +50,7 @@ export default function CoinManagement() {
     const fetchCoinMapping = async () => {
       try {
         const res = await axios.get(
-          "https://api.dilvoicechat.fun/api/get-coin-mapping"
+          "https://api.dilvoicechat.fun/api/get-coin-mapping",
         );
 
         if (res.data?.rate) {
@@ -68,9 +71,12 @@ export default function CoinManagement() {
     if (!coinRate) return alert("Please enter coin rate");
 
     try {
-      const res = await axios.post("https://api.dilvoicechat.fun/api/coin-mapping", {
-        rate: Number(coinRate),
-      });
+      const res = await axios.post(
+        "https://api.dilvoicechat.fun/api/coin-mapping",
+        {
+          rate: Number(coinRate),
+        },
+      );
 
       alert(res.data?.message || "Coin mapping updated");
     } catch (error) {
@@ -84,14 +90,57 @@ export default function CoinManagement() {
 
     try {
       await axios.delete(
-        `https://api.dilvoicechat.fun/api/delete-recharge-plan/${id}`
+        `https://api.dilvoicechat.fun/api/delete-recharge-plan/${id}`,
       );
 
-      // Remove from UI instantly
       setPlans((prev) => prev.filter((p) => p._id !== id));
     } catch (error) {
       console.error("Failed to delete plan", error);
       alert("Failed to delete plan");
+    }
+  };
+
+  /* ===============================
+     MANUAL COIN UPDATE
+  =============================== */
+
+  const addCoins = async () => {
+    if (!email || !coins) return alert("Enter email and coins");
+
+    try {
+      const res = await axios.post(
+        "https://api.dilvoicechat.fun/api/add-coins",
+        {
+          email,
+          coins: Number(coins),
+        },
+      );
+
+      alert(res.data.message || "Coins added successfully");
+      setCoins("");
+    } catch (error) {
+      console.error("Add coins failed", error);
+      alert("Failed to add coins");
+    }
+  };
+
+  const deductCoins = async () => {
+    if (!email || !coins) return alert("Enter email and coins");
+
+    try {
+      const res = await axios.post(
+        "https://api.dilvoicechat.fun/api/deduct-coins",
+        {
+          email,
+          coins: Number(coins),
+        },
+      );
+
+      alert(res.data.message || "Coins deducted successfully");
+      setCoins("");
+    } catch (error) {
+      console.error("Deduct coins failed", error);
+      alert("Failed to deduct coins");
     }
   };
 
@@ -105,6 +154,7 @@ export default function CoinManagement() {
         <div className="bg-white p-6 shadow-md rounded-2xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Recharge Plans</h2>
+
             <button
               onClick={() => setOpenModal("addPlan")}
               className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700"
@@ -123,7 +173,6 @@ export default function CoinManagement() {
                 key={p._id}
                 className="flex justify-between items-center p-4 rounded-xl border bg-purple-50 hover:bg-purple-100 duration-150"
               >
-                {/* LEFT INFO */}
                 <div>
                   <p className="font-semibold">
                     ₹{p.amount} →{" "}
@@ -131,25 +180,17 @@ export default function CoinManagement() {
                       {p.totalCoins ?? p.coins + p.bonusCoins} Coins
                     </span>
                   </p>
+
                   <p className="text-sm text-green-600">
                     Bonus: {p.bonusCoins} coins
                   </p>
                 </div>
 
-                {/* RIGHT ACTIONS */}
                 <div className="flex gap-2">
-                  {/* EDIT */}
-                  <button
-                    onClick={() => {
-                      setSelectedPlan(p); // optional
-                      setOpenModal("editPlan");
-                    }}
-                    className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200"
-                  >
+                  <button className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200">
                     ✏️
                   </button>
 
-                  {/* DELETE */}
                   <button
                     onClick={() => handleDeletePlan(p._id)}
                     className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200"
@@ -168,6 +209,7 @@ export default function CoinManagement() {
 
           <div className="flex items-center gap-3 mb-4">
             <IndianRupee className="text-purple-600" />
+
             <input
               type="number"
               value={coinRate}
@@ -192,14 +234,31 @@ export default function CoinManagement() {
           <input
             type="text"
             placeholder="Enter User Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="border p-2 w-full rounded-xl mb-3"
           />
 
+          <input
+            type="number"
+            placeholder="Enter Coins"
+            value={coins}
+            onChange={(e) => setCoins(e.target.value)}
+            className="border p-2 w-full rounded-xl mb-4"
+          />
+
           <div className="grid grid-cols-2 gap-4">
-            <button className="bg-green-600 text-white flex items-center justify-center gap-2 py-2 rounded-xl">
+            <button
+              onClick={addCoins}
+              className="bg-green-600 text-white flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-green-700"
+            >
               <Coins size={18} /> Add Coins
             </button>
-            <button className="bg-red-600 text-white flex items-center justify-center gap-2 py-2 rounded-xl">
+
+            <button
+              onClick={deductCoins}
+              className="bg-red-600 text-white flex items-center justify-center gap-2 py-2 rounded-xl hover:bg-red-700"
+            >
               <Minus size={18} /> Deduct Coins
             </button>
           </div>
