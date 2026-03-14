@@ -14,7 +14,14 @@ const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL || "https://api.dilvoicechat.fun";
 
 const ICE_SERVERS = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    {
+      urls: "turn:openrelay.metered.ca:80",
+      username: "openrelayproject",
+      credential: "openrelayproject",
+    },
+  ],
 };
 
 export default function RoomPage() {
@@ -40,7 +47,7 @@ export default function RoomPage() {
   const peerConnectionsRef = useRef(new Map());
   const localStreamRef = useRef(null);
   const remoteStreamsRef = useRef(new Map());
-  const remoteAudioRef = useRef(null);
+  const remoteAudioRefs = useRef({});
 
   // ✅ NEW MESSAGE REFS
   const messagesEndRef = useRef(null);
@@ -360,7 +367,8 @@ export default function RoomPage() {
     }
 
     if (isInitiator === null && currentUser) {
-      isInitiator = currentUser.id < peerId;
+      isInitiator = currentUser.id.localeCompare(peerId) < 0;
+
       console.log(
         `📍 Auto-determined initiator: ${isInitiator} (${currentUser.id} vs ${peerId})`,
       );
@@ -388,24 +396,26 @@ export default function RoomPage() {
         const remoteStream = event.streams[0];
         remoteStreamsRef.current.set(peerId, remoteStream);
 
-        if (remoteAudioRef.current) {
-          remoteAudioRef.current.srcObject = remoteStream;
-          remoteAudioRef.current.volume = 1;
+        if (!remoteAudioRefs.current[peerId]) {
+          const audio = new Audio();
+          audio.autoplay = true;
+          audio.playsInline = true;
+          audio.volume = 1;
 
-          const playPromise = remoteAudioRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                console.log(`✅ Remote audio from ${peerId} playing`);
-                setAudioStatus("playing");
-              })
-              .catch((error) => {
-                console.warn(
-                  `⚠️ Autoplay blocked: ${error.message}. User can click play.`,
-                );
-              });
-          }
+          remoteAudioRefs.current[peerId] = audio;
         }
+
+        remoteAudioRefs.current[peerId].srcObject = remoteStream;
+
+        remoteAudioRefs.current[peerId]
+          .play()
+          .then(() => {
+            console.log(`✅ Playing remote audio from ${peerId}`);
+            setAudioStatus("playing");
+          })
+          .catch((err) => {
+            console.warn("Autoplay blocked:", err);
+          });
       }
     };
 
@@ -536,18 +546,9 @@ export default function RoomPage() {
         return;
       }
 
-      if (
-        pc.signalingState !== "closed" &&
-        pc.signalingState !== "have-remote-offer"
-      ) {
-        if (candidate) {
-          await pc.addIceCandidate(new RTCIceCandidate(candidate));
-          console.log(`✅ ICE candidate added from ${from}`);
-        }
-      } else {
-        console.warn(
-          `⚠️ Ignoring ICE - signaling state is ${pc.signalingState}`,
-        );
+      if (candidate) {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        console.log(`✅ ICE candidate added from ${from}`);
       }
     } catch (err) {
       console.warn(`⚠️ ICE candidate error from ${from}:`, err.message);
@@ -695,10 +696,16 @@ export default function RoomPage() {
       socketRef.current.on("room:userLeft", ({ userId }) => {
         console.log(`👤 User left: ${userId}`);
         const pc = peerConnectionsRef.current.get(userId);
+
         if (pc) {
           pc.close();
           peerConnectionsRef.current.delete(userId);
         }
+        if (remoteAudioRefs.current[userId]) {
+          remoteAudioRefs.current[userId].srcObject = null;
+          delete remoteAudioRefs.current[userId];
+        }
+
         remoteStreamsRef.current.delete(userId);
         setParticipants((prev) => prev.filter((u) => u.id !== userId));
       });
@@ -814,13 +821,13 @@ export default function RoomPage() {
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
-      <audio
+      {/* <audio
         ref={remoteAudioRef}
         autoPlay
         playsInline
         controls
         style={{ display: "none" }}
-      />
+      /> */}
 
       {error && (
         <div className="bg-red-500 p-3 text-sm text-center sticky top-0 z-50">
