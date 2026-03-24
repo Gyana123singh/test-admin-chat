@@ -29,6 +29,10 @@ export default function RoomPage() {
 
   // ✅ EXISTING STATES (DO NOT CHANGE)
   const [room, setRoom] = useState(null);
+  // 🆕 ROOM DESCRIPTION STATES
+  const [showDescModal, setShowDescModal] = useState(false);
+  const [roomDescription, setRoomDescription] = useState("");
+  const [tempDescription, setTempDescription] = useState("");
   const [joined, setJoined] = useState(false);
   const [micOn, setMicOn] = useState(false);
   const [participants, setParticipants] = useState([]);
@@ -195,6 +199,10 @@ export default function RoomPage() {
       console.log("🎯 Seat updated:", seatCount);
       setSeatCount(seatCount);
     });
+    socket.on("room:description", ({ description }) => {
+      console.log("📄 Room description:", description);
+      setRoomDescription(description);
+    });
 
     return () => {
       socket.off("room:seatCount");
@@ -281,6 +289,16 @@ export default function RoomPage() {
     alert("Video uploaded");
   };
 
+  const handleSaveDescription = () => {
+    if (!socketRef.current) return;
+
+    socketRef.current.emit("room:description:update", {
+      roomId,
+      description: tempDescription,
+    });
+
+    setShowDescModal(false);
+  };
   /* ================= VIDEO CONTROLS ================= */
   const playVideo = async () => {
     await axios.post(
@@ -872,7 +890,11 @@ export default function RoomPage() {
       )}
 
       <AddFriend />
-
+      {roomDescription && (
+        <div className="text-sm text-gray-300 px-4 py-2">
+          📄 {roomDescription}
+        </div>
+      )}
       {/* HEADER */}
       <div className="p-4 flex gap-3 items-center justify-between border-b border-gray-700">
         <div>
@@ -894,6 +916,17 @@ export default function RoomPage() {
             className="bg-gray-800 px-3 py-1 rounded text-xs"
           >
             ⚙️
+          </button>
+        )}
+        {isHost && (
+          <button
+            onClick={() => {
+              setTempDescription(roomDescription);
+              setShowDescModal(true);
+            }}
+            className="bg-gray-800 px-2 py-1 rounded text-xs"
+          >
+            Edit Desc
           </button>
         )}
         <button
@@ -1366,6 +1399,40 @@ export default function RoomPage() {
               <span className="text-white">{num} Slots</span>
             </div>
           ))}
+        </div>
+      )}
+      {showDescModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-900 p-5 rounded-xl w-[90%] max-w-md">
+            <h2 className="text-lg font-semibold mb-3">Edit Description</h2>
+
+            <textarea
+              value={tempDescription}
+              onChange={(e) => setTempDescription(e.target.value)}
+              maxLength={150}
+              className="w-full p-3 rounded bg-gray-800 text-white outline-none"
+              placeholder="Enter room description"
+            />
+
+            <p className="text-xs text-gray-400 mt-1 text-right">
+              {tempDescription.length}/150
+            </p>
+
+            <div className="flex justify-end gap-3 mt-4">
+              <button
+                onClick={() => setShowDescModal(false)}
+                className="text-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDescription}
+                className="text-white font-semibold"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
