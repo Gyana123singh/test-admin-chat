@@ -940,7 +940,9 @@ export default function RoomPage() {
                   )}
                 </div>
 
-                <p className="text-xs text-gray-400 mt-1">No. {i + 1}</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {user?.displayId ? `ID: ${user.displayId}` : `No. ${i + 1}`}
+                </p>
               </div>
             );
           })}
@@ -962,13 +964,19 @@ export default function RoomPage() {
                 <div key={message.id} className="flex gap-2 group">
                   <img
                     src={message.avatar}
-                    alt={message.username}
+                    alt={
+                      message.displayId
+                        ? `ID: ${message.displayId}`
+                        : message.username
+                    }
                     className="w-8 h-8 rounded-full flex-shrink-0"
                   />
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-sm">
-                        {message.username}
+                        {message.displayId
+                          ? `ID: ${message.displayId}`
+                          : message.username}
                       </span>
                       <span className="text-xs text-gray-500">
                         {new Date(message.timestamp).toLocaleTimeString()}
