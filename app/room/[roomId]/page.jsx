@@ -62,7 +62,7 @@ export default function RoomPage() {
   const [showGifts, setShowGifts] = useState(false);
   const [giftQueue, setGiftQueue] = useState([]);
   const [coins, setCoins] = useState(0);
-
+  const isHost = String(room?.host) === String(currentUser?.id);
   // 🥊 PK STATES
   const [activePK, setActivePK] = useState(null);
   const [pkScores, setPkScores] = useState({ left: 0, right: 0 });
@@ -76,7 +76,8 @@ export default function RoomPage() {
   const total = pkScores.left + pkScores.right || 1;
   const leftPercent = (pkScores.left / total) * 100;
   const rightPercent = (pkScores.right / total) * 100;
-
+  const [seatCount, setSeatCount] = useState(12);
+  const [showSeatModal, setShowSeatModal] = useState(false);
   useEffect(() => {
     if (!socketRef.current || !joined) return;
 
@@ -182,6 +183,21 @@ export default function RoomPage() {
 
     return () => {
       socket.off("gift:received", handleGiftReceived);
+    };
+  }, [joined]);
+
+  useEffect(() => {
+    if (!socketRef.current || !joined) return;
+
+    const socket = socketRef.current;
+
+    socket.on("room:seatCount", ({ seatCount }) => {
+      console.log("🎯 Seat updated:", seatCount);
+      setSeatCount(seatCount);
+    });
+
+    return () => {
+      socket.off("room:seatCount");
     };
   }, [joined]);
 
@@ -799,7 +815,16 @@ export default function RoomPage() {
       console.log("🔇 Mic muted");
     }
   };
+  const handleSeatChange = (count) => {
+    if (!socketRef.current) return;
 
+    socketRef.current.emit("room:seatCount:update", {
+      roomId,
+      seatCount: count,
+    });
+
+    setShowSeatModal(false);
+  };
   /* ================= CLEANUP ================= */
   useEffect(() => {
     return () => {
@@ -862,7 +887,15 @@ export default function RoomPage() {
           <p className="text-xs text-gray-400 mt-1">{currentUser.username}</p>
         </div>
         <p className="text-sm text-gray-300">{room.roomId}</p>
-
+        {/* ✅ ADD THIS HERE */}
+        {isHost && (
+          <button
+            onClick={() => setShowSeatModal(true)}
+            className="bg-gray-800 px-3 py-1 rounded text-xs"
+          >
+            ⚙️
+          </button>
+        )}
         <button
           onClick={handleJoin}
           disabled={joined}
@@ -875,6 +908,9 @@ export default function RoomPage() {
           {joined ? "✓ Joined" : "Join"}
         </button>
       </div>
+
+      {/* ROOM SETTINGS BUTTON */}
+      <div className="p-3"></div>
       <div className="flex w-full h-4 bg-gray-700 rounded overflow-hidden">
         <div
           className="bg-green-500 transition-all duration-500"
@@ -887,15 +923,27 @@ export default function RoomPage() {
       </div>
 
       {joined && (
-        <div className="p-4 text-sm text-gray-300 border-b border-gray-700">
-          <p className="font-semibold">👥 In room: {participants.length + 1}</p>
-          <p className="text-xs text-green-400 mt-2">✓ You</p>
-          {participants.map((user) => (
-            <div key={user.id} className="text-xs mt-2 flex items-center gap-2">
-              <span className="text-green-400">•</span>
-              <span>{user.username || "User"}</span>
-            </div>
-          ))}
+        <div className="grid grid-cols-4 gap-4 p-4">
+          {Array.from({ length: seatCount }).map((_, i) => {
+            const user = participants[i];
+
+            return (
+              <div key={i} className="flex flex-col items-center">
+                <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center">
+                  {user ? (
+                    <img
+                      src={user.avatar}
+                      className="w-full h-full rounded-full"
+                    />
+                  ) : (
+                    <span className="text-gray-400">N</span>
+                  )}
+                </div>
+
+                <p className="text-xs text-gray-400 mt-1">No. {i + 1}</p>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -1294,6 +1342,24 @@ export default function RoomPage() {
           <HiOutlineVolumeUp className="text-2xl text-gray-400" />
         </button>
       </div>
+      {showSeatModal && (
+        <div className="fixed bottom-0 left-0 right-0 bg-black p-5 rounded-t-2xl">
+          <h3 className="text-white text-center mb-4 font-semibold">
+            Select Total Slots
+          </h3>
+
+          {[8, 10, 12].map((num) => (
+            <div
+              key={num}
+              onClick={() => handleSeatChange(num)}
+              className="flex items-center gap-3 py-3 border-b border-gray-700 cursor-pointer"
+            >
+              <input type="radio" checked={seatCount === num} readOnly />
+              <span className="text-white">{num} Slots</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
