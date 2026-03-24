@@ -686,13 +686,13 @@ export default function RoomPage() {
         setError("Connection failed");
       });
 
-      socketRef.current.once("room:users", (users) => {
-        console.log("📋 Existing users in room:", users);
+      socketRef.current.on("room:users", (users) => {
+        console.log("🔥 USERS WITH DISPLAY ID:", users);
+
         setParticipants(users);
 
         users.forEach((user) => {
           if (user.id !== currentUser.id) {
-            console.log(`🤝 Creating peer connection to ${user.username}`);
             createPeerConnection(user.id);
           }
         });
