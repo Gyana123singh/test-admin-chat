@@ -168,7 +168,23 @@ export default function RoomPage() {
     setPkVoteTarget(targetUserId);
     setShowGifts(true);
   };
+  useEffect(() => {
+    if (!socketRef.current) return;
 
+    const socket = socketRef.current;
+
+    socket.on("room:userLeftSeat", ({ userId }) => {
+      console.log("👀 User moved to audience:", userId);
+
+      setParticipants((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, isWatcher: true } : u)),
+      );
+    });
+
+    return () => {
+      socket.off("room:userLeftSeat");
+    };
+  }, []);
   useEffect(() => {
     if (!socketRef.current) return;
 
@@ -847,6 +863,54 @@ export default function RoomPage() {
       console.log("🔇 Mic muted");
     }
   };
+
+  const handleLeaveSeat = () => {
+    if (!socketRef.current) return;
+
+    console.log("🪑 Leaving seat...");
+
+    // ===============================
+    // 1. STOP MIC (VERY IMPORTANT)
+    // ===============================
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+    }
+
+    setMicOn(false);
+
+    // ===============================
+    // 2. CLOSE ALL PEER CONNECTIONS
+    // ===============================
+    peerConnectionsRef.current.forEach((pc) => pc.close());
+    peerConnectionsRef.current.clear();
+
+    // ===============================
+    // 3. STOP REMOTE AUDIO
+    // ===============================
+    Object.values(remoteAudioRefs.current).forEach((audio) => {
+      try {
+        audio.srcObject = null;
+        audio.pause();
+      } catch {}
+    });
+
+    remoteAudioRefs.current = {};
+    remoteStreamsRef.current.clear();
+
+    // ===============================
+    // 4. EMIT TO BACKEND
+    // ===============================
+    socketRef.current.emit("room:leaveSeat", { roomId });
+
+    // ===============================
+    // 5. SWITCH TO AUDIENCE MODE
+    // ===============================
+    setJoined(false);
+    setAudioStatus("waiting");
+
+    console.log("✅ Now in audience mode");
+  };
   const inviteUser = () => {
     if (!selectedUser) return; // ✅ ADD
 
@@ -1009,6 +1073,15 @@ export default function RoomPage() {
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
+
+        {joined && (
+          <button
+            onClick={handleLeaveSeat}
+            className="px-3 py-1 rounded text-sm font-medium bg-red-500 hover:bg-red-600"
+          >
+            Leave Seat
+          </button>
+        )}
       </div>
 
       {/* ROOM SETTINGS BUTTON */}
@@ -1024,7 +1097,7 @@ export default function RoomPage() {
         />
       </div>
 
-      {joined && (
+      {participants.length > 0 && (
         <div className="grid grid-cols-4 gap-4 p-4">
           {Array.from({ length: seatCount }).map((_, i) => {
             const user = participants[i];
@@ -1071,7 +1144,7 @@ export default function RoomPage() {
       )}
 
       {/* ✅ MESSAGES SECTION */}
-      {joined && (
+      {(joined || participants.length > 0) && (
         <div className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
