@@ -39,7 +39,8 @@ export default function RoomPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [error, setError] = useState("");
   const [audioStatus, setAudioStatus] = useState("waiting");
-
+  const [showSeatOptions, setShowSeatOptions] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
   // ✅ NEW MESSAGING STATES
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
@@ -125,7 +126,19 @@ export default function RoomPage() {
       socket.off("pk:ended");
     };
   }, [joined]);
+  useEffect(() => {
+    if (!socketRef.current) return;
 
+    const socket = socketRef.current;
+
+    socket.on("error:permission", ({ message }) => {
+      alert(message || "Permission denied");
+    });
+
+    return () => {
+      socket.off("error:permission");
+    };
+  }, []);
   const DEFAULT_PK_GIFT_ID = "698e317478ac4b31e0840b6c"; // from your DB
   const [pkVoteTarget, setPkVoteTarget] = useState(null); // add this state
 
@@ -833,6 +846,61 @@ export default function RoomPage() {
       console.log("🔇 Mic muted");
     }
   };
+  const inviteUser = () => {
+    if (!selectedUser) return; // ✅ ADD
+
+    socketRef.current.emit("room:invite", {
+      roomId,
+      toUserId: selectedUser.id,
+    });
+
+    setShowSeatOptions(false); // ✅ ADD
+  };
+  const lockSeat = () => {
+    if (!selectedUser) return;
+
+    const seatNumber =
+      participants.findIndex((u) => u?.id === selectedUser.id) + 1;
+
+    socketRef.current.emit("room:seat:lock", {
+      roomId,
+      seatNumber,
+    });
+
+    setShowSeatOptions(false);
+  };
+
+  const micOff = () => {
+    if (!selectedUser) return;
+
+    socketRef.current.emit("room:mic:forceOff", {
+      roomId,
+      targetUserId: selectedUser.id,
+    });
+
+    setShowSeatOptions(false);
+  };
+
+  const muteAll = () => {
+    socketRef.current.emit("room:mic:muteAll", { roomId });
+    setShowSeatOptions(false);
+  };
+
+  const lockAllSeats = () => {
+    socketRef.current.emit("room:seats:lockAll", { roomId });
+    setShowSeatOptions(false);
+  };
+
+  const giveAdmin = () => {
+    if (!selectedUser) return;
+
+    socketRef.current.emit("room:giveAdmin", {
+      roomId,
+      targetUserId: selectedUser.id,
+    });
+
+    setShowSeatOptions(false);
+  };
   const handleSeatChange = (count) => {
     if (!socketRef.current) return;
 
@@ -961,7 +1029,18 @@ export default function RoomPage() {
             const user = participants[i];
 
             return (
-              <div key={i} className="flex flex-col items-center">
+              <div
+                key={i}
+                className="flex flex-col items-center"
+                onClick={() => {
+                  if (!user) return;
+                  if (!isHost) return; // ✅ ADD THIS (only host can open options)
+                  if (user.id === currentUser.id) return; // ✅ optional (prevent self click)
+
+                  setSelectedUser(user);
+                  setShowSeatOptions(true);
+                }}
+              >
                 <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center">
                   {user ? (
                     <img
@@ -1432,6 +1511,52 @@ export default function RoomPage() {
                 Save
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showSeatOptions && (
+        <div className="fixed inset-0 bg-black/60 flex items-end z-50">
+          <div className="w-full bg-[#0f0f1a] rounded-t-2xl p-4">
+            <h2 className="text-center text-lg font-semibold mb-4">
+              Seat Options
+            </h2>
+
+            <div className="space-y-4">
+              <button onClick={inviteUser} className="w-full text-left">
+                👥 Invite
+              </button>
+
+              <button onClick={lockSeat} className="w-full text-left">
+                🔒 Lock Seat
+              </button>
+
+              <button onClick={micOff} className="w-full text-left">
+                🎤 Mic Off
+              </button>
+
+              <button onClick={muteAll} className="w-full text-left">
+                🔇 Mute Everyone
+              </button>
+
+              <button
+                onClick={lockAllSeats}
+                className="w-full text-left text-red-400"
+              >
+                🔒 Lock All Seats
+              </button>
+
+              <button onClick={giveAdmin} className="w-full text-left">
+                👑 Give Admin
+              </button>
+            </div>
+
+            <button
+              onClick={() => setShowSeatOptions(false)}
+              className="mt-4 w-full bg-gray-800 py-2 rounded"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
