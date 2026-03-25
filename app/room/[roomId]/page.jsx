@@ -1107,8 +1107,6 @@ export default function RoomPage() {
                   console.log("CURRENT USER:", currentUser?.id);
                   console.log("ROOM HOST:", room?.host);
 
-                  if (!user) return;
-
                   // ❌ TEMPORARY REMOVE THIS LINE FOR TEST
                   // if (!isHost) return;
                   if (!isHost) return; // ✅ ADD THIS
