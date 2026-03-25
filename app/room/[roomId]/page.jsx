@@ -1111,7 +1111,7 @@ export default function RoomPage() {
 
                   // ❌ TEMPORARY REMOVE THIS LINE FOR TEST
                   // if (!isHost) return;
-
+                  if (!isHost) return; // ✅ ADD THIS
                   if (user.id === currentUser.id) return;
 
                   setSelectedUser(user);
@@ -1592,45 +1592,60 @@ export default function RoomPage() {
         </div>
       )}
 
-      {showSeatOptions && (
+      {showSeatOptions && isHost && (
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
-          <div className="w-full bg-[#0f0f1a] rounded-t-2xl p-4">
-            <h2 className="text-center text-lg font-semibold mb-4">
+          <div className="w-full bg-[#0f0f1a] rounded-t-2xl p-5">
+            <h2 className="text-center text-lg font-semibold mb-5">
               Seat Options
             </h2>
 
-            <div className="space-y-4">
-              <button onClick={inviteUser} className="w-full text-left">
+            <div className="space-y-4 text-sm">
+              <button
+                onClick={inviteUser}
+                className="w-full flex items-center gap-3 py-3 border-b border-gray-700"
+              >
                 👥 Invite
               </button>
 
-              <button onClick={lockSeat} className="w-full text-left">
+              <button
+                onClick={lockSeat}
+                className="w-full flex items-center gap-3 py-3 border-b border-gray-700"
+              >
                 🔒 Lock Seat
               </button>
 
-              <button onClick={micOff} className="w-full text-left">
+              <button
+                onClick={micOff}
+                className="w-full flex items-center gap-3 py-3 border-b border-gray-700"
+              >
                 🎤 Mic Off
               </button>
 
-              <button onClick={muteAll} className="w-full text-left">
+              <button
+                onClick={muteAll}
+                className="w-full flex items-center gap-3 py-3 border-b border-gray-700"
+              >
                 🔇 Mute Everyone
               </button>
 
               <button
                 onClick={lockAllSeats}
-                className="w-full text-left text-red-400"
+                className="w-full flex items-center gap-3 py-3 border-b border-gray-700 text-red-400"
               >
                 🔒 Lock All Seats
               </button>
 
-              <button onClick={giveAdmin} className="w-full text-left">
+              <button
+                onClick={giveAdmin}
+                className="w-full flex items-center gap-3 py-3"
+              >
                 👑 Give Admin
               </button>
             </div>
 
             <button
               onClick={() => setShowSeatOptions(false)}
-              className="mt-4 w-full bg-gray-800 py-2 rounded"
+              className="mt-5 w-full bg-gray-800 py-2 rounded-lg"
             >
               Cancel
             </button>
