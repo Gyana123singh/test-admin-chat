@@ -909,20 +909,36 @@ export default function RoomPage() {
     console.log("✅ Now in audience mode");
   };
   const inviteUser = () => {
-    if (!selectedUser) return; // ✅ ADD
+    if (!socketRef.current || !socketRef.current.connected) {
+      console.log("❌ Socket not connected");
+      return;
+    }
+
+    if (!selectedUser?.id) {
+      console.log("❌ No selected user");
+      return;
+    }
+
+    console.log("📤 Invite:", selectedUser.id);
 
     socketRef.current.emit("room:invite", {
       roomId,
       toUserId: selectedUser.id,
     });
 
-    setShowSeatOptions(false); // ✅ ADD
+    setShowSeatOptions(false);
   };
+
   const lockSeat = () => {
-    if (!selectedUser) return;
+    if (!socketRef.current || !socketRef.current.connected) return;
+    if (!selectedUser?.id) return;
 
     const seatNumber =
-      participants.findIndex((u) => u?.id === selectedUser.id) + 1;
+      participants.findIndex(
+        (u) => (u?.id || u?.userId || u?._id) === selectedUser.id,
+      ) + 1;
+
+    console.log("📤 Lock seat:", seatNumber);
 
     socketRef.current.emit("room:seat:lock", {
       roomId,
@@ -933,7 +949,10 @@ export default function RoomPage() {
   };
 
   const micOff = () => {
-    if (!selectedUser) return;
+    if (!socketRef.current || !socketRef.current.connected) return;
+    if (!selectedUser?.id) return;
+
+    console.log("📤 Mic Off:", selectedUser.id);
 
     socketRef.current.emit("room:mic:forceOff", {
       roomId,
@@ -944,17 +963,30 @@ export default function RoomPage() {
   };
 
   const muteAll = () => {
+    if (!socketRef.current || !socketRef.current.connected) return;
+
+    console.log("📤 Mute all");
+
     socketRef.current.emit("room:mic:muteAll", { roomId });
+
     setShowSeatOptions(false);
   };
 
   const lockAllSeats = () => {
+    if (!socketRef.current || !socketRef.current.connected) return;
+
+    console.log("📤 Lock all seats");
+
     socketRef.current.emit("room:seats:lockAll", { roomId });
+
     setShowSeatOptions(false);
   };
 
   const giveAdmin = () => {
-    if (!selectedUser) return;
+    if (!socketRef.current || !socketRef.current.connected) return;
+    if (!selectedUser?.id) return;
+
+    console.log("📤 Give Admin:", selectedUser.id);
 
     socketRef.current.emit("room:giveAdmin", {
       roomId,
@@ -1125,8 +1157,11 @@ export default function RoomPage() {
 
                   if (!isHost) return; // ✅ ADD THIS
                   if (user.id === currentUser.id) return;
-
-                  setSelectedUser(user);
+                  const userId = user?.id || user?.userId || user?._id;
+                  setSelectedUser({
+                    ...user,
+                    id: userId, // ✅ force correct id
+                  });
                   setShowSeatOptions(true);
                 }}
               >
