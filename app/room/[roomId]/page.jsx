@@ -67,8 +67,10 @@ export default function RoomPage() {
   const [showGifts, setShowGifts] = useState(false);
   const [giftQueue, setGiftQueue] = useState([]);
   const [coins, setCoins] = useState(0);
-  const isHost =
-    String(room?.host?._id || room?.host) === String(currentUser?.id);
+  const hostId =
+    room?.host?._id || room?.host?.id || room?.host?.userId || room?.host;
+
+  const isHost = String(hostId) === String(currentUser?.id);
   // 🥊 PK STATES
   const [activePK, setActivePK] = useState(null);
   const [pkScores, setPkScores] = useState({ left: 0, right: 0 });
@@ -270,7 +272,7 @@ export default function RoomPage() {
     try {
       const decoded = JSON.parse(atob(token.split(".")[1]));
       setCurrentUser({
-        id: decoded.sub || decoded.roomId,
+        id: decoded.sub || decoded.id || decoded._id,
         username: decoded.username || decoded.name || "User",
         avatar: decoded.avatar || "/avatar.png",
       });
@@ -989,7 +991,11 @@ export default function RoomPage() {
         <p>Loading...</p>
       </div>
     );
-
+  console.log("HOST DEBUG:", {
+    roomHost: room?.host,
+    currentUserId: currentUser?.id,
+    isHost,
+  });
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* <audio
@@ -1068,6 +1074,12 @@ export default function RoomPage() {
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
+        <button
+          onClick={() => setShowSeatOptions(true)}
+          className="bg-red-500 px-3 py-1"
+        >
+          TEST MODAL
+        </button>
 
         {joined && (
           <button
@@ -1109,6 +1121,8 @@ export default function RoomPage() {
 
                   // ❌ TEMPORARY REMOVE THIS LINE FOR TEST
                   // if (!isHost) return;
+                  if (!user) return; // ✅ ADD THIS
+
                   if (!isHost) return; // ✅ ADD THIS
                   if (user.id === currentUser.id) return;
 
