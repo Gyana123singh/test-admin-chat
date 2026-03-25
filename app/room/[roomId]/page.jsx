@@ -67,7 +67,8 @@ export default function RoomPage() {
   const [showGifts, setShowGifts] = useState(false);
   const [giftQueue, setGiftQueue] = useState([]);
   const [coins, setCoins] = useState(0);
-  const isHost = String(room?.host) === String(currentUser?.id);
+  const isHost =
+    String(room?.host?._id || room?.host) === String(currentUser?.id);
   // 🥊 PK STATES
   const [activePK, setActivePK] = useState(null);
   const [pkScores, setPkScores] = useState({ left: 0, right: 0 });
@@ -1033,9 +1034,17 @@ export default function RoomPage() {
                 key={i}
                 className="flex flex-col items-center"
                 onClick={() => {
+                  console.log("CLICKED USER:", user);
+                  console.log("IS HOST:", isHost);
+                  console.log("CURRENT USER:", currentUser?.id);
+                  console.log("ROOM HOST:", room?.host);
+
                   if (!user) return;
-                  if (!isHost) return; // ✅ ADD THIS (only host can open options)
-                  if (user.id === currentUser.id) return; // ✅ optional (prevent self click)
+
+                  // ❌ TEMPORARY REMOVE THIS LINE FOR TEST
+                  // if (!isHost) return;
+
+                  if (user.id === currentUser.id) return;
 
                   setSelectedUser(user);
                   setShowSeatOptions(true);
