@@ -700,7 +700,7 @@ export default function RoomPage() {
       );
       console.log("✅ HTTP join successful");
 
-      if (!socketRef.current) {
+      if (!socketRef.current || !socketRef.current.connected) {
         socketRef.current = io(SOCKET_URL, {
           transports: ["websocket"],
           auth: { token },
@@ -869,9 +869,7 @@ export default function RoomPage() {
 
     console.log("🪑 Leaving seat...");
 
-    // ===============================
-    // 1. STOP MIC (VERY IMPORTANT)
-    // ===============================
+    // 1. stop mic
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
@@ -879,15 +877,11 @@ export default function RoomPage() {
 
     setMicOn(false);
 
-    // ===============================
-    // 2. CLOSE ALL PEER CONNECTIONS
-    // ===============================
+    // 2. close peer connections
     peerConnectionsRef.current.forEach((pc) => pc.close());
     peerConnectionsRef.current.clear();
 
-    // ===============================
-    // 3. STOP REMOTE AUDIO
-    // ===============================
+    // 3. stop remote audio
     Object.values(remoteAudioRefs.current).forEach((audio) => {
       try {
         audio.srcObject = null;
@@ -898,14 +892,15 @@ export default function RoomPage() {
     remoteAudioRefs.current = {};
     remoteStreamsRef.current.clear();
 
-    // ===============================
-    // 4. EMIT TO BACKEND
-    // ===============================
+    // 4. notify backend
     socketRef.current.emit("room:leaveSeat", { roomId });
 
-    // ===============================
-    // 5. SWITCH TO AUDIENCE MODE
-    // ===============================
+    // ✅ 5. RESET SOCKET (FIX)
+    socketRef.current.off();
+    socketRef.current.disconnect();
+    socketRef.current = null;
+
+    // 6. update UI
     setJoined(false);
     setAudioStatus("waiting");
 
