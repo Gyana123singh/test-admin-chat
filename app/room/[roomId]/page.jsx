@@ -62,7 +62,7 @@ export default function RoomPage() {
   const videoRef = useRef(null);
   const [videoUrl, setVideoUrl] = useState(null);
   const [videoVisible, setVideoVisible] = useState(false);
-
+  const [isWatching, setIsWatching] = useState(false);
   // 🎁 GIFT STATES
   const [showGifts, setShowGifts] = useState(false);
   const [giftQueue, setGiftQueue] = useState([]);
@@ -142,7 +142,23 @@ export default function RoomPage() {
   }, []);
   const DEFAULT_PK_GIFT_ID = "698e317478ac4b31e0840b6c"; // from your DB
   const [pkVoteTarget, setPkVoteTarget] = useState(null); // add this state
+  useEffect(() => {
+    if (!socketRef.current) return;
 
+    const socket = socketRef.current;
+
+    socket.on("room:userLeftSeat", ({ userId }) => {
+      console.log("👀 User moved to audience:", userId);
+
+      setParticipants((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, isWatcher: true } : u)),
+      );
+    });
+
+    return () => {
+      socket.off("room:userLeftSeat");
+    };
+  }, []);
   const supportPK = (side) => {
     if (!socketRef.current || !activePK) return;
 
@@ -168,6 +184,97 @@ export default function RoomPage() {
     setPkVoteTarget(targetUserId);
     setShowGifts(true);
   };
+  const handleWatch = async () => {
+    if (!currentUser || socketRef.current) return;
+
+    console.log("👀 Watching room...");
+
+    socketRef.current = io(SOCKET_URL, {
+      transports: ["websocket"],
+      auth: { token },
+    });
+
+    const socket = socketRef.current;
+
+    socket.on("connect", () => {
+      console.log("✅ Socket connected (watch mode)");
+
+      socket.emit("user:connect", {
+        userId: currentUser.id,
+        username: currentUser.username,
+        avatar: currentUser.avatar,
+      });
+
+      // 🔥 AUDIENCE MODE
+      socket.emit("room:watch", {
+        roomId,
+        user: {
+          id: currentUser.id,
+          username: currentUser.username,
+          avatar: currentUser.avatar,
+        },
+      });
+
+      setIsWatching(true);
+    });
+
+    // ✅ USERS
+    socket.on("room:users", (users) => {
+      console.log("👥 Users:", users);
+      setParticipants(users);
+    });
+
+    // ✅ MESSAGES
+    socket.on("room:messages", (msgs) => {
+      console.log("💬 Messages:", msgs);
+      setMessages(msgs);
+    });
+
+    // ✅ ROOM DESCRIPTION
+    socket.on("room:description", ({ description }) => {
+      console.log("📄 Description:", description);
+      setRoomDescription(description);
+    });
+
+    // ✅ SEAT COUNT
+    socket.on("room:seatCount", ({ seatCount }) => {
+      console.log("🎯 SeatCount:", seatCount);
+      setSeatCount(seatCount);
+    });
+
+    // ✅ VIDEO STATE (VERY IMPORTANT)
+    socket.on("room:videoState", ({ video }) => {
+      console.log("🎬 Video state:", video);
+
+      if (!video?.fileName || !video.isVisible) return;
+
+      const url = `https://api.dilvoicechat.fun/video-stream/${roomId}/${video.fileName}`;
+
+      setVideoUrl(url);
+      setVideoVisible(true);
+
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = video.currentTime || 0;
+
+          if (video.isPlaying) {
+            videoRef.current.play().catch(() => {});
+          }
+        }
+      }, 300);
+    });
+
+    // ⚠️ OPTIONAL (GOOD PRACTICE)
+    socket.on("disconnect", () => {
+      console.log("❌ Socket disconnected");
+      setIsWatching(false);
+    });
+  };
+  useEffect(() => {
+    if (currentUser && !isWatching) {
+      handleWatch();
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     if (!socketRef.current) return;
@@ -661,107 +768,40 @@ export default function RoomPage() {
 
   /* ================= JOIN ROOM ================= */
   const handleJoin = async () => {
-    if (joined || !currentUser) return;
+    if (joined || !currentUser || !socketRef.current) return;
 
     try {
-      console.log("📤 Joining room:", { roomId, userId: currentUser.id });
+      console.log("🎤 Switching to speaker mode...");
 
-      console.log("🎤 Requesting microphone...");
-      localStreamRef.current = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-      console.log("✅ Microphone accessed");
-      setMicOn(true);
-
-      const joinRes = await axios.post(
+      // ✅ 1. CALL API
+      await axios.post(
         `https://api.dilvoicechat.fun/api/rooms/${roomId}/join`,
         {},
         { headers: { Authorization: `Bearer ${token}` } },
       );
-      console.log("✅ HTTP join successful");
 
-      if (!socketRef.current) {
-        socketRef.current = io(SOCKET_URL, {
-          transports: ["websocket"],
-          auth: { token },
-        });
-      }
+      console.log("✅ API join success");
 
-      socketRef.current.on("connect", () => {
-        console.log("✅ Socket connected");
+      // ✅ 2. GET MIC
+      localStreamRef.current = await navigator.mediaDevices.getUserMedia({
+        audio: true,
+      });
 
-        socketRef.current.emit("user:connect", {
-          userId: currentUser.id,
+      setMicOn(true);
+
+      // ✅ 3. EMIT JOIN (NO NEW SOCKET)
+      socketRef.current.emit("room:join", {
+        roomId,
+        user: {
+          id: currentUser.id,
           username: currentUser.username,
           avatar: currentUser.avatar,
-        });
-
-        socketRef.current.emit("room:join", {
-          roomId,
-          user: {
-            id: currentUser.id,
-            username: currentUser.username,
-            avatar: currentUser.avatar,
-          },
-        });
-        console.log("📤 Room join emitted");
-
-        setJoined(true);
+        },
       });
 
-      socketRef.current.on("connect_error", (err) => {
-        console.error("❌ Socket connection error:", err);
-        setError("Connection failed");
-      });
-
-      socketRef.current.on("room:users", (users) => {
-        console.log("🔥 USERS WITH DISPLAY ID:", users);
-
-        setParticipants(users);
-
-        users.forEach((user) => {
-          if (user.id !== currentUser.id) {
-            createPeerConnection(user.id);
-          }
-        });
-      });
-
-      socketRef.current.on("room:userJoined", (user) => {
-        console.log("👤 New user joined:", user.username);
-        if (user.id !== currentUser.id) {
-          setParticipants((prev) =>
-            prev.some((u) => u.id === user.id) ? prev : [...prev, user],
-          );
-          console.log(`🤝 Creating peer connection to ${user.username}`);
-          createPeerConnection(user.id);
-        }
-      });
-
-      socketRef.current.on("room:userLeft", ({ userId }) => {
-        console.log(`👤 User left: ${userId}`);
-        const pc = peerConnectionsRef.current.get(userId);
-
-        if (pc) {
-          pc.close();
-          peerConnectionsRef.current.delete(userId);
-        }
-        if (remoteAudioRefs.current[userId]) {
-          remoteAudioRefs.current[userId].srcObject = null;
-          delete remoteAudioRefs.current[userId];
-        }
-
-        remoteStreamsRef.current.delete(userId);
-        setParticipants((prev) => prev.filter((u) => u.id !== userId));
-      });
+      setJoined(true);
     } catch (err) {
       console.error("❌ Join error:", err);
-      const errorMsg = err.response?.data?.message || err.message;
-      setError(errorMsg);
-      alert(`Error: ${errorMsg}`);
     }
   };
 
@@ -846,6 +886,28 @@ export default function RoomPage() {
       socketRef.current.emit("mic:speaking", false);
       console.log("🔇 Mic muted");
     }
+  };
+
+  const handleLeaveSeat = () => {
+    if (!socketRef.current) return;
+
+    console.log("🪑 Leaving seat...");
+
+    // 🔥 1. STOP MIC
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+    }
+
+    setMicOn(false);
+
+    // 🔥 2. EMIT TO BACKEND
+    socketRef.current.emit("room:leaveSeat", { roomId });
+
+    // 🔥 3. SWITCH TO AUDIENCE MODE
+    setJoined(false);
+
+    console.log("✅ Switched to audience mode");
   };
   const inviteUser = () => {
     if (!selectedUser) return; // ✅ ADD
@@ -1009,6 +1071,15 @@ export default function RoomPage() {
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
+
+        {joined && (
+          <button
+            onClick={handleLeaveSeat}
+            className="px-3 py-1 rounded text-sm font-medium bg-red-500 hover:bg-red-600"
+          >
+            Leave Seat
+          </button>
+        )}
       </div>
 
       {/* ROOM SETTINGS BUTTON */}
@@ -1024,7 +1095,7 @@ export default function RoomPage() {
         />
       </div>
 
-      {joined && (
+      {(joined || isWatching) && (
         <div className="grid grid-cols-4 gap-4 p-4">
           {Array.from({ length: seatCount }).map((_, i) => {
             const user = participants[i];
@@ -1071,7 +1142,7 @@ export default function RoomPage() {
       )}
 
       {/* ✅ MESSAGES SECTION */}
-      {joined && (
+      {(joined || isWatching) && (
         <div className="flex-1 overflow-y-auto p-4 space-y-3 flex flex-col">
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full">
@@ -1457,6 +1528,7 @@ export default function RoomPage() {
       <div className="p-4 flex gap-4 bg-black/90 border-t border-gray-700">
         <button
           onClick={toggleMic}
+          disabled={!joined}
           className="p-3 rounded-full hover:bg-gray-700 transition flex-1 flex justify-center"
           title="Toggle microphone"
         >
