@@ -265,6 +265,39 @@ export default function RoomPage() {
   const token =
     typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
 
+  useEffect(() => {
+    if (!socketRef.current) return;
+
+    const socket = socketRef.current;
+
+    socket.on("room:seat:locked", ({ seatNumber }) => {
+      console.log("🔒 Seat locked:", seatNumber);
+    });
+
+    socket.on("room:seats:lockedAll", ({ lockedSeats }) => {
+      console.log("🔒 All seats locked:", lockedSeats);
+    });
+
+    socket.on("room:mic:mutedAll", () => {
+      console.log("🔇 Everyone muted");
+    });
+
+    socket.on("mic:update", ({ userId, muted }) => {
+      console.log("🎤 Mic update:", userId, muted);
+    });
+
+    socket.on("room:adminAdded", ({ userId }) => {
+      console.log("👑 Admin added:", userId);
+    });
+
+    return () => {
+      socket.off("room:seat:locked");
+      socket.off("room:seats:lockedAll");
+      socket.off("room:mic:mutedAll");
+      socket.off("mic:update");
+      socket.off("room:adminAdded");
+    };
+  }, []);
   /* ================= DECODE TOKEN ================= */
   useEffect(() => {
     if (!token) return;
@@ -947,10 +980,9 @@ export default function RoomPage() {
 
     setShowSeatOptions(false);
   };
-
   const micOff = () => {
-    if (!socketRef.current || !socketRef.current.connected) return;
-    if (!selectedUser?.id) return;
+    if (!isHost) return alert("Only host allowed");
+    if (!selectedUser?.id) return alert("Select a user");
 
     console.log("📤 Mic Off:", selectedUser.id);
 
@@ -1106,12 +1138,9 @@ export default function RoomPage() {
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
-        <button
-          onClick={() => setShowSeatOptions(true)}
-          className="bg-red-500 px-3 py-1"
-        >
-          TEST MODAL
-        </button>
+        {isHost && (
+          <button onClick={() => setShowSeatOptions(true)}>Seat Options</button>
+        )}
 
         {joined && (
           <button
@@ -1156,8 +1185,10 @@ export default function RoomPage() {
                   if (!user) return; // ✅ ADD THIS
 
                   if (!isHost) return; // ✅ ADD THIS
-                  if (user.id === currentUser.id) return;
                   const userId = user?.id || user?.userId || user?._id;
+
+                  if (String(userId) === String(currentUser.id)) return;
+
                   setSelectedUser({
                     ...user,
                     id: userId, // ✅ force correct id
