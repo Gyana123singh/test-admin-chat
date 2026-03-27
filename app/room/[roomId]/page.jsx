@@ -947,36 +947,35 @@ export default function RoomPage() {
     console.log("✅ Now in audience mode");
   };
   const inviteUser = () => {
-    if (!socketRef.current || !socketRef.current.connected) {
-      console.log("❌ Socket not connected");
+    if (!socketRef.current) return;
+
+    const userId =
+      selectedUser?.id || selectedUser?.userId || selectedUser?._id;
+
+    if (!userId) {
+      alert("Select user first");
       return;
     }
-
-    if (!selectedUser?.id) {
-      console.log("❌ No selected user");
-      return;
-    }
-
-    console.log("📤 Invite:", selectedUser.id);
 
     socketRef.current.emit("room:invite", {
       roomId,
-      toUserId: selectedUser.id,
+      toUserId: userId,
     });
 
     setShowSeatOptions(false);
   };
 
   const lockSeat = () => {
-    if (!socketRef.current || !socketRef.current.connected) return;
-    if (!selectedUser?.id) return;
+    if (!socketRef.current) return;
+
+    const userId =
+      selectedUser?.id || selectedUser?.userId || selectedUser?._id;
+
+    if (!userId) return;
 
     const seatNumber =
-      participants.findIndex(
-        (u) => (u?.id || u?.userId || u?._id) === selectedUser.id,
-      ) + 1;
-
-    console.log("📤 Lock seat:", seatNumber);
+      participants.findIndex((u) => (u?.id || u?.userId || u?._id) === userId) +
+      1;
 
     socketRef.current.emit("room:seat:lock", {
       roomId,
@@ -987,13 +986,15 @@ export default function RoomPage() {
   };
   const micOff = () => {
     if (!isHost) return alert("Only host allowed");
-    if (!selectedUser?.id) return alert("Select a user");
 
-    console.log("📤 Mic Off:", selectedUser.id);
+    const userId =
+      selectedUser?.id || selectedUser?.userId || selectedUser?._id;
+
+    if (!userId) return alert("Select user");
 
     socketRef.current.emit("room:mic:forceOff", {
       roomId,
-      targetUserId: selectedUser.id,
+      targetUserId: userId,
     });
 
     setShowSeatOptions(false);
@@ -1021,13 +1022,20 @@ export default function RoomPage() {
 
   const giveAdmin = () => {
     if (!socketRef.current || !socketRef.current.connected) return;
-    if (!selectedUser?.id) return;
 
-    console.log("📤 Give Admin:", selectedUser.id);
+    const userId =
+      selectedUser?.id || selectedUser?.userId || selectedUser?._id;
+
+    if (!userId) {
+      alert("Select user first");
+      return;
+    }
+
+    console.log("📤 Give Admin:", userId);
 
     socketRef.current.emit("room:giveAdmin", {
       roomId,
-      targetUserId: selectedUser.id,
+      targetUserId: userId,
     });
 
     setShowSeatOptions(false);
@@ -1143,9 +1151,6 @@ export default function RoomPage() {
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
-        {isHost && (
-          <button onClick={() => setShowSeatOptions(true)}>Seat Options</button>
-        )}
 
         {joined && (
           <button
@@ -1180,24 +1185,18 @@ export default function RoomPage() {
                 key={i}
                 className="flex flex-col items-center"
                 onClick={() => {
-                  console.log("CLICKED USER:", user);
-                  console.log("IS HOST:", isHost);
-                  console.log("CURRENT USER:", currentUser?.id);
-                  console.log("ROOM HOST:", room?.host);
+                  if (!user) return;
+                  if (!isHost) return;
 
-                  // ❌ TEMPORARY REMOVE THIS LINE FOR TEST
-                  // if (!isHost) return;
-                  if (!user) return; // ✅ ADD THIS
-
-                  if (!isHost) return; // ✅ ADD THIS
                   const userId = user?.id || user?.userId || user?._id;
 
-                  if (String(userId) === String(currentUser.id)) return;
+                  if (!userId) return;
 
                   setSelectedUser({
                     ...user,
-                    id: userId, // ✅ force correct id
+                    id: userId,
                   });
+
                   setShowSeatOptions(true);
                 }}
               >
