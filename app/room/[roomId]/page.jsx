@@ -80,7 +80,8 @@ export default function RoomPage() {
   const [pkDuration, setPkDuration] = useState(60); // seconds
   const [pkLeftUser, setPkLeftUser] = useState(null);
   const [pkRightUser, setPkRightUser] = useState(null);
-
+  const [lockedSeats, setLockedSeats] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const total = pkScores.left + pkScores.right || 1;
   const leftPercent = (pkScores.left / total) * 100;
   const rightPercent = (pkScores.right / total) * 100;
@@ -272,30 +273,51 @@ export default function RoomPage() {
 
     socket.on("room:seat:locked", ({ seatNumber }) => {
       console.log("🔒 Seat locked:", seatNumber);
+
+      setLockedSeats((prev) => [...new Set([...prev, seatNumber])]);
+    });
+
+    socket.on("room:seat:unlocked", ({ seatNumber }) => {
+      setLockedSeats((prev) => prev.filter((s) => s !== seatNumber));
     });
 
     socket.on("room:seats:lockedAll", ({ lockedSeats }) => {
       console.log("🔒 All seats locked:", lockedSeats);
+      setLockedSeats(lockedSeats);
     });
 
     socket.on("room:mic:mutedAll", () => {
       console.log("🔇 Everyone muted");
-    });
 
-    socket.on("mic:update", ({ userId, muted }) => {
-      console.log("🎤 Mic update:", userId, muted);
+      setParticipants((prev) =>
+        prev.map((u) => ({
+          ...u,
+          mic: { muted: true, speaking: false },
+        })),
+      );
     });
 
     socket.on("room:adminAdded", ({ userId }) => {
       console.log("👑 Admin added:", userId);
+
+      setAdmins((prev) => [...new Set([...prev, userId])]);
+    });
+
+    socket.on("mic:update", ({ userId, muted }) => {
+      setParticipants((prev) =>
+        prev.map((u) =>
+          u.id === userId ? { ...u, mic: { ...u.mic, muted } } : u,
+        ),
+      );
     });
 
     return () => {
       socket.off("room:seat:locked");
+      socket.off("room:seat:unlocked");
       socket.off("room:seats:lockedAll");
       socket.off("room:mic:mutedAll");
-      socket.off("mic:update");
       socket.off("room:adminAdded");
+      socket.off("mic:update");
     };
   }, []);
   /* ================= DECODE TOKEN ================= */
@@ -973,9 +995,15 @@ export default function RoomPage() {
 
     if (!userId) return;
 
-    const seatNumber =
-      participants.findIndex((u) => (u?.id || u?.userId || u?._id) === userId) +
-      1;
+    const seatIndex = participants.findIndex(
+      (u) => (u?.id || u?.userId || u?._id) === userId,
+    );
+
+    if (seatIndex === -1) return;
+
+    const seatNumber = seatIndex + 1;
+
+    console.log("📤 Locking seat:", seatNumber);
 
     socketRef.current.emit("room:seat:lock", {
       roomId,
@@ -1180,6 +1208,8 @@ export default function RoomPage() {
           {Array.from({ length: seatCount }).map((_, i) => {
             const user = participants[i];
 
+            const isLocked = lockedSeats.includes(i + 1); // ✅ REQUIRED
+
             return (
               <div
                 key={i}
@@ -1189,7 +1219,6 @@ export default function RoomPage() {
                   if (!isHost) return;
 
                   const userId = user?.id || user?.userId || user?._id;
-
                   if (!userId) return;
 
                   setSelectedUser({
@@ -1200,8 +1229,14 @@ export default function RoomPage() {
                   setShowSeatOptions(true);
                 }}
               >
-                <div className="w-14 h-14 rounded-full bg-gray-700 flex items-center justify-center">
-                  {user ? (
+                <div
+                  className={`w-14 h-14 rounded-full flex items-center justify-center
+          ${isLocked ? "bg-red-600" : "bg-gray-700"}
+        `}
+                >
+                  {isLocked ? (
+                    <span>🔒</span>
+                  ) : user ? (
                     <img
                       src={user.avatar}
                       className="w-full h-full rounded-full"
