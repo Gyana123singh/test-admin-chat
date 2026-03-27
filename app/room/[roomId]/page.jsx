@@ -775,7 +775,12 @@ export default function RoomPage() {
         setParticipants(users);
 
         users.forEach((user) => {
-          if (user.id !== currentUser.id) {
+          if (
+            user.id !== currentUser.id &&
+            !user.isWatcher &&
+            !peerConnectionsRef.current.has(user.id) // ✅ ADD THIS
+          ) {
+            console.log("🔗 Connecting to:", user.id);
             createPeerConnection(user.id);
           }
         });
@@ -783,11 +788,11 @@ export default function RoomPage() {
 
       socketRef.current.on("room:userJoined", (user) => {
         console.log("👤 New user joined:", user.username);
-        if (user.id !== currentUser.id) {
-          setParticipants((prev) =>
-            prev.some((u) => u.id === user.id) ? prev : [...prev, user],
-          );
-          console.log(`🤝 Creating peer connection to ${user.username}`);
+        if (
+          user.id !== currentUser.id &&
+          !user.isWatcher &&
+          !peerConnectionsRef.current.has(user.id) // ✅ ADD THIS
+        ) {
           createPeerConnection(user.id);
         }
       });
