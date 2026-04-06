@@ -697,11 +697,13 @@ export default function RoomPage() {
     setMessageInput("");
   };
 
-  const handleDeleteMessage = (messageId) => {
+  const handleDeleteMessage = (messageId, type) => {
     if (!socketRef.current) return;
+
     socketRef.current.emit("message:delete", {
       roomId,
       messageId,
+      type,
     });
   };
 
@@ -867,21 +869,25 @@ export default function RoomPage() {
       setMessages((prev) => [...prev, message]);
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     });
-
-    socket.on("message:edited", (updatedMessage) => {
-      console.log("✏️ Message edited:", updatedMessage);
+    socket.on("message:edited", ({ messageId, newText }) => {
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === updatedMessage.id ? updatedMessage : msg,
+          msg.id === messageId ? { ...msg, text: newText, edited: true } : msg,
         ),
       );
     });
 
-    socket.on("message:deleted", ({ messageId }) => {
-      console.log("🗑️ Message deleted:", messageId);
+    socket.on("message:deleted:me", ({ messageId }) => {
       setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
     });
 
+    socket.on("message:deleted:everyone", ({ messageId, text }) => {
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, text, deleted: true } : msg,
+        ),
+      );
+    });
     socket.on(
       "message:typing",
       ({ userId, username, isTyping, typingUsers }) => {
@@ -1266,54 +1272,50 @@ export default function RoomPage() {
             </div>
           ) : (
             <>
-              {messages.map((message) => (
-                <div key={message.id} className="flex gap-2 group">
-                  <img
-                    src={message.avatar}
-                    alt={
-                      message.displayId
-                        ? `ID: ${message.displayId}`
-                        : message.username
-                    }
-                    className="w-8 h-8 rounded-full flex-shrink-0"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm">
-                        {message.displayId
-                          ? `ID: ${message.displayId}`
-                          : message.username}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        {new Date(message.timestamp).toLocaleTimeString()}
-                      </span>
-                      {message.edited && (
-                        <span className="text-xs text-gray-400">(edited)</span>
+              {messages.map((msg) => {
+                if (msg.deletedFor?.includes(currentUser.id)) return null;
+
+                return (
+                  <div key={msg.id}>
+                    <p className="text-sm">
+                      {msg.deleted ? (
+                        <span className="italic text-gray-400">{msg.text}</span>
+                      ) : (
+                        <>
+                          {msg.text}
+                          {msg.edited && (
+                            <span className="ml-2 text-[10px] text-gray-500 italic">
+                              (edited)
+                            </span>
+                          )}
+                        </>
                       )}
-                    </div>
-                    <p className="text-sm text-gray-100 break-words">
-                      {message.text}
                     </p>
 
-                    {message.userId === currentUser.id && (
-                      <div className="flex gap-2 mt-1 opacity-0 group-hover:opacity-100 transition">
-                        <button
-                          onClick={() => handleEditMessage(message)}
-                          className="text-xs text-blue-400 hover:text-blue-300"
-                        >
+                    {msg.userId === currentUser.id && !msg.deleted && (
+                      <div className="flex gap-2 text-xs">
+                        <button onClick={() => handleEditMessage(msg)}>
                           Edit
                         </button>
+
                         <button
-                          onClick={() => handleDeleteMessage(message.id)}
-                          className="text-xs text-red-400 hover:text-red-300"
+                          onClick={() => handleDeleteMessage(msg.id, "me")}
                         >
-                          Delete
+                          Delete for me
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            handleDeleteMessage(msg.id, "everyone")
+                          }
+                        >
+                          Delete for everyone
                         </button>
                       </div>
                     )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {typingUsers.length > 0 && (
                 <div className="text-xs text-gray-400 italic">
