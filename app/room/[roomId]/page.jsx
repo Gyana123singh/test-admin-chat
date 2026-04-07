@@ -863,6 +863,12 @@ export default function RoomPage() {
     socket.on("call:answer", handleIncomingAnswer);
     socket.on("call:ice", handleIceCandidate);
 
+    // ✅ ADD THIS FIRST
+    socket.on("room:messages", (msgs) => {
+      setMessages(msgs);
+    });
+
+    // ✅ LOGGING FOR MESSAG
     // ✅ MESSAGE LISTENERS
     socket.on("message:receive", (message) => {
       console.log("💬 Message received:", message);
@@ -872,19 +878,25 @@ export default function RoomPage() {
     socket.on("message:edited", ({ messageId, newText }) => {
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === messageId ? { ...msg, text: newText, edited: true } : msg,
+          String(msg.id) === String(messageId)
+            ? { ...msg, text: newText, edited: true }
+            : msg,
         ),
       );
     });
 
     socket.on("message:deleted:me", ({ messageId }) => {
-      setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      setMessages((prev) =>
+        prev.filter((msg) => String(msg.id) !== String(messageId)),
+      );
     });
 
     socket.on("message:deleted:everyone", ({ messageId, text }) => {
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === messageId ? { ...msg, text, deleted: true } : msg,
+          String(msg.id) === String(messageId)
+            ? { ...msg, text, deleted: true }
+            : msg,
         ),
       );
     });
@@ -1291,28 +1303,28 @@ export default function RoomPage() {
                         </>
                       )}
                     </p>
+                    {String(msg.userId) === String(currentUser.id) &&
+                      !msg.deleted && (
+                        <div className="flex gap-2 text-xs">
+                          <button onClick={() => handleEditMessage(msg)}>
+                            Edit
+                          </button>
 
-                    {msg.userId === currentUser.id && !msg.deleted && (
-                      <div className="flex gap-2 text-xs">
-                        <button onClick={() => handleEditMessage(msg)}>
-                          Edit
-                        </button>
+                          <button
+                            onClick={() => handleDeleteMessage(msg.id, "me")}
+                          >
+                            Delete for me
+                          </button>
 
-                        <button
-                          onClick={() => handleDeleteMessage(msg.id, "me")}
-                        >
-                          Delete for me
-                        </button>
-
-                        <button
-                          onClick={() =>
-                            handleDeleteMessage(msg.id, "everyone")
-                          }
-                        >
-                          Delete for everyone
-                        </button>
-                      </div>
-                    )}
+                          <button
+                            onClick={() =>
+                              handleDeleteMessage(msg.id, "everyone")
+                            }
+                          >
+                            Delete for everyone
+                          </button>
+                        </div>
+                      )}
                   </div>
                 );
               })}
