@@ -678,14 +678,29 @@ export default function RoomPage() {
 
   /* ================= MESSAGE FUNCTIONS ================= */
   const handleSendMessage = () => {
-    if (!messageInput.trim() || !socketRef.current) return;
+    console.log("🔥 SEND CLICK", editingMessageId);
+
+    if (!socketRef.current) {
+      console.log("❌ No socket");
+      return;
+    }
+
+    if (!socketRef.current.connected) {
+      console.log("❌ Socket not connected");
+      return;
+    }
+
+    if (!messageInput.trim()) return;
 
     if (editingMessageId) {
+      console.log("✏️ EDIT EMIT");
+
       socketRef.current.emit("message:edit", {
         roomId,
         messageId: editingMessageId,
         newText: messageInput,
       });
+
       setEditingMessageId(null);
     } else {
       socketRef.current.emit("message:send", {
@@ -698,7 +713,17 @@ export default function RoomPage() {
   };
 
   const handleDeleteMessage = (messageId, type) => {
-    if (!socketRef.current) return;
+    console.log("🔥 DELETE CLICK:", messageId, type);
+
+    if (!socketRef.current) {
+      console.log("❌ Socket missing");
+      return;
+    }
+
+    if (!socketRef.current.connected) {
+      console.log("❌ Socket not connected");
+      return;
+    }
 
     socketRef.current.emit("message:delete", {
       roomId,
@@ -977,8 +1002,7 @@ export default function RoomPage() {
 
     // ✅ 5. RESET SOCKET (FIX)
     socketRef.current.off();
-    socketRef.current.disconnect();
-    socketRef.current = null;
+    socketRef.current.emit("room:leave", { roomId });
 
     // 6. update UI
     setJoined(false);
@@ -1304,7 +1328,8 @@ export default function RoomPage() {
                       )}
                     </p>
                     {String(msg.userId) === String(currentUser.id) &&
-                      !msg.deleted && (
+                      !msg.deleted &&
+                      socketRef.current?.connected && (
                         <div className="flex gap-2 text-xs">
                           <button onClick={() => handleEditMessage(msg)}>
                             Edit
