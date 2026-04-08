@@ -1001,7 +1001,7 @@ export default function RoomPage() {
     socketRef.current.emit("room:leaveSeat", { roomId });
 
     // ✅ 5. RESET SOCKET (FIX)
-    socketRef.current.off();
+   
     socketRef.current.emit("room:leave", { roomId });
 
     // 6. update UI
