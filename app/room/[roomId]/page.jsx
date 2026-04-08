@@ -734,7 +734,8 @@ export default function RoomPage() {
   };
 
   const handleEditMessage = (message) => {
-    setEditingMessageId(message.id);
+    setEditingMessageId(message.id || message.dbId);
+    console.log("🧪 CLICK ID:", message.id, message.dbId);
     setMessageInput(message.text);
   };
 
@@ -891,14 +892,25 @@ export default function RoomPage() {
 
     // ✅ ADD THIS FIRST
     socket.on("room:messages", (msgs) => {
-      setMessages(msgs);
+      const fixed = msgs.map((m) => ({
+        ...m,
+        id: m.id || m._id,
+      }));
+
+      setMessages(fixed);
     });
 
     // ✅ LOGGING FOR MESSAG
     // ✅ MESSAGE LISTENERS
     socket.on("message:receive", (message) => {
       console.log("💬 Message received:", message);
-      setMessages((prev) => [...prev, message]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          ...message,
+          id: message.id || message._id, // ✅ FORCE DB ID
+        },
+      ]);
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     });
     socket.on("message:edited", ({ messageId, newText }) => {
@@ -1337,14 +1349,19 @@ export default function RoomPage() {
                           </button>
 
                           <button
-                            onClick={() => handleDeleteMessage(msg.id, "me")}
+                            onClick={() =>
+                              handleDeleteMessage(msg.id || msg.dbId, "me")
+                            }
                           >
                             Delete for me
                           </button>
 
                           <button
                             onClick={() =>
-                              handleDeleteMessage(msg.id, "everyone")
+                              handleDeleteMessage(
+                                msg.id || msg.dbId,
+                                "everyone",
+                              )
                             }
                           >
                             Delete for everyone
