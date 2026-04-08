@@ -706,6 +706,7 @@ export default function RoomPage() {
       socketRef.current.emit("message:send", {
         roomId,
         text: messageInput,
+        userId: currentUser.id, // ✅ ADD THIS LINE
       });
     }
 
@@ -1001,7 +1002,7 @@ export default function RoomPage() {
     socketRef.current.emit("room:leaveSeat", { roomId });
 
     // ✅ 5. RESET SOCKET (FIX)
-   
+
     socketRef.current.emit("room:leave", { roomId });
 
     // 6. update UI
