@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instanceApi = axios.create({
-  baseURL: "https://api.dilvoicechat.fun",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun",
   headers: {
     "Content-Type": "application/json",
   },

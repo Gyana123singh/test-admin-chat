@@ -45,8 +45,9 @@ export default function Login() {
         return;
       }
 
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun";
       const res = await axios.post(
-        "https://api.dilvoicechat.fun/admin/login",
+        `${baseURL}/admin/login`,
         { email, password }
       );
 
@@ -109,8 +110,9 @@ export default function Login() {
 
       const idToken = await result.user.getIdToken();
 
+      const baseURL = process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun";
       const res = await axios.post(
-        "https://api.dilvoicechat.fun/api/auth/otp/firebase-otp-login",
+        `${baseURL}/api/auth/otp/firebase-otp-login`,
         { idToken }
       );
 
@@ -226,7 +228,7 @@ export default function Login() {
         <button
           onClick={() =>
             (window.location.href =
-              "https://api.dilvoicechat.fun/auth/google")
+              `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/auth/google`)
           }
           className="w-full flex items-center justify-center gap-3 border py-3 rounded-lg mt-4"
         >

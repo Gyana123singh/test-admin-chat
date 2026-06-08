@@ -320,6 +320,8 @@ export default function RoomPage() {
       socket.off("mic:update");
     };
   }, []);
+
+  
   /* ================= DECODE TOKEN ================= */
   useEffect(() => {
     if (!token) return;

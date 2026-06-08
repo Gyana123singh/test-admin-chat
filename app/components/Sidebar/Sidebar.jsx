@@ -60,6 +60,11 @@ function Sidebar() {
       path: "/join",
       image: "/Chart.png",
     },
+    {
+      name: "Profit & Loss",
+      path: "/profitLoss",
+      image: "/Chart.png",
+    },
     { name: "Settings", path: "/setting", image: "/Folder.png" },
     // { name: "Logout", path: "/logout", image: "/Setting.png" },
   ];
