@@ -87,6 +87,14 @@ export default function RoomPage() {
   const rightPercent = (pkScores.right / total) * 100;
   const [seatCount, setSeatCount] = useState(12);
   const [showSeatModal, setShowSeatModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("Privacy");
+  const [showPasswordSetupModal, setShowPasswordSetupModal] = useState(false);
+  const [roomPasswordInput, setRoomPasswordInput] = useState("");
+  const [showPasswordOptionsModal, setShowPasswordOptionsModal] = useState(false);
+  const [showJoinPasswordModal, setShowJoinPasswordModal] = useState(false);
+  const [joinPassword, setJoinPassword] = useState("");
+  const [isRoomLocked, setIsRoomLocked] = useState(false);
   useEffect(() => {
     if (!socketRef.current || !joined) return;
 
@@ -311,6 +319,12 @@ export default function RoomPage() {
       );
     });
 
+    socket.on("room:lockedState", ({ isLocked }) => {
+      console.log("🔒 Room locked state changed:", isLocked);
+      setIsRoomLocked(isLocked);
+      setRoom((prev) => prev ? { ...prev, isLocked } : null);
+    });
+
     return () => {
       socket.off("room:seat:locked");
       socket.off("room:seat:unlocked");
@@ -318,8 +332,9 @@ export default function RoomPage() {
       socket.off("room:mic:mutedAll");
       socket.off("room:adminAdded");
       socket.off("mic:update");
+      socket.off("room:lockedState");
     };
-  }, []);
+  }, [joined]);
 
   
   /* ================= DECODE TOKEN ================= */
@@ -352,6 +367,7 @@ export default function RoomPage() {
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setRoom(res.data.room);
+        setIsRoomLocked(res.data.room.isLocked || false);
       } catch (err) {
         console.error("❌ Fetch room error:", err);
         setError("Failed to load room");
@@ -764,11 +780,11 @@ export default function RoomPage() {
   };
 
   /* ================= JOIN ROOM ================= */
-  const handleJoin = async () => {
+  const handleJoin = async (pass = null) => {
     if (joined || !currentUser) return;
 
     try {
-      console.log("📤 Joining room:", { roomId, userId: currentUser.id });
+      console.log("📤 Joining room:", { roomId, userId: currentUser.id, pass });
 
       console.log("🎤 Requesting microphone...");
       localStreamRef.current = await navigator.mediaDevices.getUserMedia({
@@ -783,7 +799,7 @@ export default function RoomPage() {
 
       const joinRes = await axios.post(
         `https://api.dilvoicechat.fun/api/rooms/${roomId}/join`,
-        {},
+        { password: pass },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       console.log("✅ HTTP join successful");
@@ -806,6 +822,7 @@ export default function RoomPage() {
 
         socketRef.current.emit("room:join", {
           roomId,
+          password: pass,
           user: {
             id: currentUser.id,
             username: currentUser.username,
@@ -868,6 +885,18 @@ export default function RoomPage() {
       });
     } catch (err) {
       console.error("❌ Join error:", err);
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((t) => t.stop());
+        localStreamRef.current = null;
+      }
+      setMicOn(false);
+
+      const resData = err.response?.data;
+      if (resData?.isLocked) {
+        setShowJoinPasswordModal(true);
+        return;
+      }
+
       const errorMsg = err.response?.data?.message || err.message;
       setError(errorMsg);
       alert(`Error: ${errorMsg}`);
@@ -1208,21 +1237,14 @@ export default function RoomPage() {
         {/* ✅ ADD THIS HERE */}
         {isHost && (
           <button
-            onClick={() => setShowSeatModal(true)}
+            onClick={() => {
+              setTempDescription(roomDescription || "");
+              setActiveTab("Privacy");
+              setShowSettingsModal(true);
+            }}
             className="bg-gray-800 px-3 py-1 rounded text-xs"
           >
-            ⚙️
-          </button>
-        )}
-        {isHost && (
-          <button
-            onClick={() => {
-              setTempDescription(roomDescription);
-              setShowDescModal(true);
-            }}
-            className="bg-gray-800 px-2 py-1 rounded text-xs"
-          >
-            Edit Desc
+            ⚙️ Room Settings
           </button>
         )}
         <button
@@ -1715,53 +1737,332 @@ export default function RoomPage() {
           <HiOutlineVolumeUp className="text-2xl text-gray-400" />
         </button>
       </div>
-      {showSeatModal && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black p-5 rounded-t-2xl">
-          <h3 className="text-white text-center mb-4 font-semibold">
-            Select Total Slots
-          </h3>
-
-          {[8, 10, 12].map((num) => (
-            <div
-              key={num}
-              onClick={() => handleSeatChange(num)}
-              className="flex items-center gap-3 py-3 border-b border-gray-700 cursor-pointer"
-            >
-              <input type="radio" checked={seatCount === num} readOnly />
-              <span className="text-white">{num} Slots</span>
+      {/* ⚙️ ROOM SETTINGS MODAL */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end justify-center transition-all duration-300">
+          <div className="w-full max-w-md bg-[#12121e] rounded-t-3xl border-t border-gray-800 p-6 shadow-2xl pb-10">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">⚙️</span>
+                <h3 className="text-white text-lg font-bold">Room Settings</h3>
+              </div>
+              <button
+                onClick={() => setShowSettingsModal(false)}
+                className="text-gray-400 hover:text-white transition p-1"
+              >
+                ✕
+              </button>
             </div>
-          ))}
+
+            {/* Tabs Selector */}
+            <div className="flex border-b border-gray-800 mb-6 text-sm">
+              {["General", "Privacy", "Moderation"].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex-1 pb-3 text-center transition-all relative font-medium ${
+                    activeTab === tab
+                      ? "text-white font-semibold"
+                      : "text-gray-400 hover:text-gray-200"
+                  }`}
+                >
+                  {tab}
+                  {activeTab === tab && (
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-white rounded-full transition-all duration-300" />
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Tab Contents */}
+            <div className="min-h-[220px]">
+              {activeTab === "General" && (
+                <div className="space-y-4">
+                  {/* Select Slots */}
+                  <div>
+                    <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium">
+                      Select Total Slots
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[8, 10, 12].map((num) => (
+                        <button
+                          key={num}
+                          onClick={() => handleSeatChange(num)}
+                          className={`py-2 px-3 rounded-xl border text-sm transition font-medium ${
+                            seatCount === num
+                              ? "bg-white text-black border-white"
+                              : "bg-gray-900 text-gray-300 border-gray-800 hover:border-gray-700"
+                          }`}
+                        >
+                          {num} Slots
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Edit Room Description */}
+                  <div>
+                    <label className="block text-xs text-gray-400 uppercase tracking-wider mb-2 font-medium">
+                      Room Description
+                    </label>
+                    <textarea
+                      value={tempDescription}
+                      onChange={(e) => setTempDescription(e.target.value)}
+                      maxLength={150}
+                      rows={3}
+                      className="w-full p-3 rounded-xl bg-gray-900 border border-gray-800 text-white outline-none focus:border-gray-700 text-sm resize-none"
+                      placeholder="Enter room description..."
+                    />
+                    <div className="flex justify-between items-center mt-1">
+                      <span className="text-[10px] text-gray-500">Max 150 chars</span>
+                      <span className="text-xs text-gray-400 font-semibold">
+                        {tempDescription.length}/150
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      handleSaveDescription();
+                      setShowSettingsModal(false);
+                    }}
+                    className="w-full py-2.5 bg-white text-black font-semibold rounded-xl text-sm transition hover:bg-gray-200 active:scale-[0.98]"
+                  >
+                    Save General Settings
+                  </button>
+                </div>
+              )}
+
+              {activeTab === "Privacy" && (
+                <div className="space-y-6">
+                  {/* ROOM ACCESS SECTION */}
+                  <div>
+                    <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">
+                      ROOM ACCESS
+                    </h4>
+                    <button
+                      onClick={() => {
+                        setShowSettingsModal(false);
+                        if (isRoomLocked) {
+                          setShowPasswordOptionsModal(true);
+                        } else {
+                          setRoomPasswordInput("");
+                          setShowPasswordSetupModal(true);
+                        }
+                      }}
+                      className="w-full flex items-center justify-between p-4 bg-gray-900/60 border border-gray-800 rounded-2xl hover:bg-gray-900 transition duration-200 text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-lg text-white">
+                          🔑
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Room Password</p>
+                          <p className="text-xs text-gray-400 text-ellipsis">
+                            {isRoomLocked ? "Room is protected with password" : "Protect your room with a password"}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-gray-400">❯</span>
+                    </button>
+                  </div>
+
+                  {/* SOCIAL SECTION */}
+                  <div>
+                    <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-semibold">
+                      SOCIAL
+                    </h4>
+                    <button
+                      onClick={() => {
+                        setShowSettingsModal(false);
+                        alert("Social sharing feature coming soon!");
+                      }}
+                      className="w-full flex items-center justify-between p-4 bg-gray-900/60 border border-gray-800 rounded-2xl hover:bg-gray-900 transition duration-200 text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-lg text-white">
+                          👤+
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Invite Friends</p>
+                          <p className="text-xs text-gray-400 text-ellipsis">Grow your audience</p>
+                        </div>
+                      </div>
+                      <span className="text-gray-400">❯</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === "Moderation" && (
+                <div className="space-y-3">
+                  <h4 className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-semibold">
+                    MODERATION CONTROLS
+                  </h4>
+                  <button
+                    onClick={() => {
+                      muteAll();
+                      setShowSettingsModal(false);
+                    }}
+                    className="w-full py-3 px-4 bg-gray-900 border border-gray-800 rounded-xl text-left text-sm font-medium text-white hover:bg-gray-800 transition"
+                  >
+                    🔇 Mute Everyone
+                  </button>
+                  <button
+                    onClick={() => {
+                      lockAllSeats();
+                      setShowSettingsModal(false);
+                    }}
+                    className="w-full py-3 px-4 bg-gray-900 border border-gray-800 rounded-xl text-left text-sm font-medium text-red-400 hover:bg-gray-800 transition"
+                  >
+                    🔒 Lock All Seats
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
-      {showDescModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-gray-900 p-5 rounded-xl w-[90%] max-w-md">
-            <h2 className="text-lg font-semibold mb-3">Edit Description</h2>
 
-            <textarea
-              value={tempDescription}
-              onChange={(e) => setTempDescription(e.target.value)}
-              maxLength={150}
-              className="w-full p-3 rounded bg-gray-800 text-white outline-none"
-              placeholder="Enter room description"
+      {/* 🔑 ROOM PASSWORD SETUP POPUP (IMAGE 2) */}
+      {showPasswordSetupModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-[#12121e] border border-gray-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+            <h3 className="text-white text-lg font-bold mb-4 text-center">Room Password</h3>
+
+            <input
+              type="password"
+              value={roomPasswordInput}
+              onChange={(e) => setRoomPasswordInput(e.target.value)}
+              placeholder="Set new password"
+              className="w-full p-3.5 mb-6 rounded-2xl bg-gray-900 border border-gray-800 text-white outline-none focus:border-gray-600 text-sm text-center font-medium"
             />
 
-            <p className="text-xs text-gray-400 mt-1 text-right">
-              {tempDescription.length}/150
-            </p>
-
-            <div className="flex justify-end gap-3 mt-4">
+            <div className="flex justify-end gap-6 text-sm font-semibold pr-2">
               <button
-                onClick={() => setShowDescModal(false)}
-                className="text-gray-400"
+                onClick={() => setShowPasswordSetupModal(false)}
+                className="text-gray-400 hover:text-gray-300 transition"
               >
                 Cancel
               </button>
               <button
-                onClick={handleSaveDescription}
-                className="text-white font-semibold"
+                onClick={async () => {
+                  if (!roomPasswordInput.trim()) {
+                    alert("Please enter a password");
+                    return;
+                  }
+                  try {
+                    await axios.put(
+                      `https://api.dilvoicechat.fun/api/rooms/${roomId}/password`,
+                      { password: roomPasswordInput.trim() },
+                      { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    setIsRoomLocked(true);
+                    setShowPasswordSetupModal(false);
+                    alert("Password set successfully! Room is now locked.");
+                  } catch (e) {
+                    alert(e.response?.data?.message || "Failed to set password");
+                  }
+                }}
+                className="text-white hover:text-gray-200 transition font-bold"
               >
                 Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🔒 ROOM PASSWORD OPTIONS POPUP (IMAGE 3) */}
+      {showPasswordOptionsModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-3xl w-full max-w-sm shadow-2xl text-black">
+            <p className="text-center text-sm font-medium text-gray-700 mb-6 leading-relaxed px-2">
+              This room is locked, password is required to enter the room except the room Owner
+            </p>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => {
+                  setShowPasswordOptionsModal(false);
+                  setRoomPasswordInput("");
+                  setShowPasswordSetupModal(true);
+                }}
+                className="w-full py-3 bg-[#1cd4d4] hover:bg-[#18c4c4] text-white font-bold rounded-full text-sm shadow-md transition active:scale-[0.98]"
+              >
+                Change password
+              </button>
+
+              <button
+                onClick={async () => {
+                  try {
+                    await axios.put(
+                      `https://api.dilvoicechat.fun/api/rooms/${roomId}/unlock`,
+                      {},
+                      { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    setIsRoomLocked(false);
+                    setShowPasswordOptionsModal(false);
+                    alert("Room unlocked successfully!");
+                  } catch (e) {
+                    alert(e.response?.data?.message || "Failed to unlock room");
+                  }
+                }}
+                className="w-full py-3 bg-transparent hover:bg-gray-50 border-2 border-[#1cd4d4] text-[#1cd4d4] font-bold rounded-full text-sm transition active:scale-[0.98]"
+              >
+                Unlock room
+              </button>
+
+              <button
+                onClick={() => setShowPasswordOptionsModal(false)}
+                className="w-full py-2.5 text-center text-sm text-gray-500 font-medium hover:text-gray-700 mt-2 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 🗝️ JOIN PASSWORD PROMPT MODAL */}
+      {showJoinPasswordModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-[#12121e] border border-gray-800 p-6 rounded-3xl w-full max-w-sm shadow-2xl">
+            <h3 className="text-white text-lg font-bold mb-2 text-center">Enter Room Password</h3>
+            <p className="text-center text-xs text-gray-400 mb-5 leading-relaxed px-4">
+              This room is locked. Please enter the correct password to join.
+            </p>
+
+            <input
+              type="password"
+              value={joinPassword}
+              onChange={(e) => setJoinPassword(e.target.value)}
+              placeholder="Enter password"
+              className="w-full p-3.5 mb-6 rounded-2xl bg-gray-900 border border-gray-800 text-white outline-none focus:border-gray-600 text-sm text-center font-medium"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowJoinPasswordModal(false);
+                  setJoinPassword("");
+                }}
+                className="flex-1 py-3 bg-gray-800 text-white font-semibold rounded-2xl text-sm transition hover:bg-gray-750"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (!joinPassword.trim()) {
+                    alert("Password required");
+                    return;
+                  }
+                  handleJoin(joinPassword.trim());
+                }}
+                className="flex-1 py-3 bg-green-500 text-white font-semibold rounded-2xl text-sm transition hover:bg-green-600 active:scale-[0.98]"
+              >
+                Confirm
               </button>
             </div>
           </div>
