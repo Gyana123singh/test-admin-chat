@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   FaUsers,
   FaUserCheck,
@@ -9,6 +11,7 @@ import {
 } from "react-icons/fa";
 import { MdPendingActions } from "react-icons/md";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
+import { Loader2 } from "lucide-react";
 
 import {
   Chart as ChartJS,
@@ -24,7 +27,6 @@ import {
 } from "chart.js";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
 
 ChartJS.register(
   CategoryScale,
@@ -39,30 +41,72 @@ ChartJS.register(
 );
 
 export default function Dashboard() {
-  /* ---------------- PREMIUM CHART DATA ---------------- */
-
   const router = useRouter();
 
+  const [stats, setStats] = useState({
+    totalUsers: "0",
+    totalHosts: "0",
+    coinRevenue: "₹0",
+    giftsRevenue: "₹0",
+    totalCalls: "0",
+    pendingVerifications: "0"
+  });
+
+  const [charts, setCharts] = useState({
+    usersGrowth: { labels: [], data: [] },
+    coinUsage: { coinsUsed: 0, coinsPurchased: 1 },
+    callsData: [],
+    callsLabels: []
+  });
+
+  const [tables, setTables] = useState({
+    recentJoined: [],
+    recentTransactions: []
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  // Authentication check and fetch stats
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (!token) {
       router.replace("/login");
+      return;
     }
-  }, []);
 
+    const fetchDashboardData = async () => {
+      try {
+        const apiURL = process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun";
+        
+        // Pass token in auth header
+        const res = await axios.get(`${apiURL}/api/dashboard/stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
 
-  // for logout functionality
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    window.location.href = "/Login";
-  };
+        if (res.data?.success) {
+          setStats(res.data.stats);
+          setCharts(res.data.charts);
+          setTables(res.data.tables);
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [router]);
+
   // Gradient User Growth Line Chart
   const usersChartData = {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    labels: charts.usersGrowth && charts.usersGrowth.labels && charts.usersGrowth.labels.length > 0 ? charts.usersGrowth.labels : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     datasets: [
       {
         label: "New Users",
-        data: [20, 50, 40, 80, 60, 100],
+        data: charts.usersGrowth && charts.usersGrowth.data && charts.usersGrowth.data.length > 0 ? charts.usersGrowth.data : [0, 0, 0, 0, 0, 0, 0],
         borderColor: "#6366f1",
         backgroundColor: (ctx) => {
           const gradient = ctx.chart.ctx.createLinearGradient(0, 0, 0, 250);
@@ -84,7 +128,7 @@ export default function Dashboard() {
     labels: ["Coins Used", "Coins Purchased"],
     datasets: [
       {
-        data: [3000, 4500],
+        data: [charts.coinUsage.coinsUsed, charts.coinUsage.coinsPurchased],
         backgroundColor: ["#0ea5e9", "#10b981"],
         borderWidth: 3,
         hoverOffset: 15,
@@ -94,19 +138,28 @@ export default function Dashboard() {
 
   // Rounded Bar Chart
   const callsChartData = {
-    labels: ["Jan", "Feb", "Mar", "Apr", "May"],
+    labels: charts.callsLabels && charts.callsLabels.length > 0 ? charts.callsLabels : ["Jan", "Feb", "Mar", "Apr", "May"],
     datasets: [
       {
         label: "Total Calls",
-        data: [120, 180, 150, 220, 300],
+        data: charts.callsData && charts.callsData.length > 0 ? charts.callsData : [0, 0, 0, 0, 0],
         backgroundColor: "#f43f5e",
         borderRadius: 10,
       },
     ],
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f9fc]">
+        <Loader2 className="animate-spin text-purple-600 mb-4" size={48} />
+        <p className="text-gray-500 font-medium">Fetching real-time statistics...</p>
+      </div>
+    );
+  }
+
   return (
-    <div className=" bg-[#f8f9fc] overflow-y-auto h-screen px-10 pt-10">
+    <div className="bg-[#f8f9fc] overflow-y-auto h-screen px-10 pt-10 pb-20">
       <h1 className="text-3xl font-bold mb-1">Dashboard</h1>
       <p className="text-gray-500 mb-6">/ Dashboard</p>
 
@@ -115,42 +168,42 @@ export default function Dashboard() {
         <Card
           icon={<FaUsers />}
           title="Total Users"
-          value="142"
+          value={stats.totalUsers}
           color="purple"
           percent="+5.2%"
         />
         <Card
           icon={<FaUserCheck />}
           title="Total Hosts"
-          value="42"
+          value={stats.totalHosts}
           color="blue"
           percent="+3.1%"
         />
         <Card
           icon={<FaMoneyBillWave />}
           title="Coin Revenue"
-          value="₹56,000"
+          value={stats.coinRevenue}
           color="green"
           percent="+8.9%"
         />
         <Card
           icon={<FaGift />}
           title="Gifts Revenue"
-          value="₹12,500"
+          value={stats.giftsRevenue}
           color="yellow"
           percent="+4.6%"
         />
         <Card
           icon={<FaVideo />}
           title="Total Calls"
-          value="860"
+          value={stats.totalCalls}
           color="red"
           percent="+12.6%"
         />
         <Card
           icon={<MdPendingActions />}
           title="Pending Verifications"
-          value="18"
+          value={stats.pendingVerifications}
           color="orange"
           percent="-2.5%"
         />
@@ -185,22 +238,16 @@ export default function Dashboard() {
         <Table
           title="Recent Joined Members"
           columns={["Name", "Reg Date", "Login Time", "Country"]}
-          data={[
-            ["Ani Sha", "11/6/2024", "02:51 PM", "India"],
-            ["Hari Haran", "11/8/2024", "05:59 PM", "N/A"],
-            ["San Deep", "11/12/2024", "11:04 AM", "N/A"],
-            ["Vchat One", "11/13/2024", "07:04 AM", "USA"],
+          data={tables.recentJoined.length > 0 ? tables.recentJoined : [
+            ["No data", "N/A", "N/A", "N/A"]
           ]}
         />
 
         <Table
           title="Recent Transactions"
           columns={["User", "Type", "Amount", "Date"]}
-          data={[
-            ["Vijay", "Coins Purchase", "₹500", "11/10/2024"],
-            ["Ramesh", "Gift Sent", "₹300", "11/11/2024"],
-            ["Kavi", "Coins Purchase", "₹1200", "11/12/2024"],
-            ["Anu", "Gift Received", "₹450", "11/13/2024"],
+          data={tables.recentTransactions.length > 0 ? tables.recentTransactions : [
+            ["No transactions", "N/A", "N/A", "N/A"]
           ]}
         />
       </div>
@@ -245,10 +292,10 @@ function Card({ icon, title, value, percent, color }) {
 
 function Table({ title, columns, data }) {
   return (
-    <div className="bg-white shadow rounded-xl p-6">
+    <div className="bg-white shadow rounded-xl p-6 overflow-x-auto">
       <h2 className="text-xl font-bold mb-4">{title}</h2>
 
-      <table className="w-full text-left">
+      <table className="w-full text-left min-w-[400px]">
         <thead>
           <tr className="border-b text-gray-500">
             {columns.map((c, i) => (
