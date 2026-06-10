@@ -187,6 +187,18 @@ export default function RoomPage() {
     socket.on("room:userLeftSeat", ({ userId }) => {
       console.log("👀 User moved to audience:", userId);
 
+      const pc = peerConnectionsRef.current.get(userId);
+      if (pc) {
+        console.log(`🔌 Closing PeerConnection for user leaving seat: ${userId}`);
+        pc.close();
+        peerConnectionsRef.current.delete(userId);
+      }
+      if (remoteAudioRefs.current[userId]) {
+        remoteAudioRefs.current[userId].srcObject = null;
+        delete remoteAudioRefs.current[userId];
+      }
+      remoteStreamsRef.current.delete(userId);
+
       setParticipants((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, isWatcher: true } : u)),
       );
@@ -845,13 +857,23 @@ export default function RoomPage() {
         setParticipants(users);
 
         users.forEach((user) => {
-          if (
-            user.id !== currentUser.id &&
-            !user.isWatcher &&
-            !peerConnectionsRef.current.has(user.id) // ✅ ADD THIS
-          ) {
-            console.log("🔗 Connecting to:", user.id);
-            createPeerConnection(user.id);
+          if (user.id !== currentUser.id) {
+            if (user.isWatcher) {
+              const pc = peerConnectionsRef.current.get(user.id);
+              if (pc) {
+                console.log(`🔌 Closing PeerConnection for watcher user: ${user.id}`);
+                pc.close();
+                peerConnectionsRef.current.delete(user.id);
+              }
+              if (remoteAudioRefs.current[user.id]) {
+                remoteAudioRefs.current[user.id].srcObject = null;
+                delete remoteAudioRefs.current[user.id];
+              }
+              remoteStreamsRef.current.delete(user.id);
+            } else if (!peerConnectionsRef.current.has(user.id)) {
+              console.log("🔗 Connecting to:", user.id);
+              createPeerConnection(user.id);
+            }
           }
         });
       });
