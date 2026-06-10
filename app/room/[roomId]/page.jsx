@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { HiOutlineMicrophone, HiOutlineVolumeUp } from "react-icons/hi";
+import { HiOutlineMicrophone, HiOutlineVolumeUp, HiOutlineVolumeOff } from "react-icons/hi";
 import AddFriend from "@/app/components/AddFriend";
 import MusicPlayer from "../musicPlayer";
 import GiftPanel from "../../giftPanel/GiftPanel";
@@ -35,6 +35,8 @@ export default function RoomPage() {
   const [tempDescription, setTempDescription] = useState("");
   const [joined, setJoined] = useState(false);
   const [micOn, setMicOn] = useState(false);
+  const [soundMuted, setSoundMuted] = useState(false);
+  const soundMutedRef = useRef(false);
   const [participants, setParticipants] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [error, setError] = useState("");
@@ -187,18 +189,6 @@ export default function RoomPage() {
     socket.on("room:userLeftSeat", ({ userId }) => {
       console.log("👀 User moved to audience:", userId);
 
-      const pc = peerConnectionsRef.current.get(userId);
-      if (pc) {
-        console.log(`🔌 Closing PeerConnection for user leaving seat: ${userId}`);
-        pc.close();
-        peerConnectionsRef.current.delete(userId);
-      }
-      if (remoteAudioRefs.current[userId]) {
-        remoteAudioRefs.current[userId].srcObject = null;
-        delete remoteAudioRefs.current[userId];
-      }
-      remoteStreamsRef.current.delete(userId);
-
       setParticipants((prev) =>
         prev.map((u) => (u.id === userId ? { ...u, isWatcher: true } : u)),
       );
@@ -348,7 +338,7 @@ export default function RoomPage() {
     };
   }, [joined]);
 
-  
+
   /* ================= DECODE TOKEN ================= */
   useEffect(() => {
     if (!token) return;
@@ -452,9 +442,9 @@ export default function RoomPage() {
 
       setTimeout(() => {
         if (videoRef.current) {
-          videoRef.current.muted = false; // ✅ HERE
+          videoRef.current.muted = soundMutedRef.current;
           videoRef.current.currentTime = currentTime;
-          videoRef.current.play().catch(() => {});
+          videoRef.current.play().catch(() => { });
         }
       }, 300);
     });
@@ -468,7 +458,7 @@ export default function RoomPage() {
 
     socket.on("video:resumed", ({ currentTime }) => {
       if (videoRef.current) {
-        videoRef.current.muted = false; // ✅ HERE
+        videoRef.current.muted = soundMutedRef.current;
         videoRef.current.currentTime = currentTime;
         videoRef.current.play();
       }
@@ -492,11 +482,11 @@ export default function RoomPage() {
 
       setTimeout(() => {
         if (videoRef.current) {
-          videoRef.current.muted = false; // ✅ HERE
+          videoRef.current.muted = soundMutedRef.current;
           videoRef.current.currentTime = video.currentTime || 0;
 
           if (video.isPlaying) {
-            videoRef.current.play().catch(() => {});
+            videoRef.current.play().catch(() => { });
           }
         }
       }, 300);
@@ -557,6 +547,7 @@ export default function RoomPage() {
         }
 
         remoteAudioRefs.current[peerId].srcObject = remoteStream;
+        remoteAudioRefs.current[peerId].muted = soundMutedRef.current;
 
         remoteAudioRefs.current[peerId]
           .play()
@@ -857,23 +848,13 @@ export default function RoomPage() {
         setParticipants(users);
 
         users.forEach((user) => {
-          if (user.id !== currentUser.id) {
-            if (user.isWatcher) {
-              const pc = peerConnectionsRef.current.get(user.id);
-              if (pc) {
-                console.log(`🔌 Closing PeerConnection for watcher user: ${user.id}`);
-                pc.close();
-                peerConnectionsRef.current.delete(user.id);
-              }
-              if (remoteAudioRefs.current[user.id]) {
-                remoteAudioRefs.current[user.id].srcObject = null;
-                delete remoteAudioRefs.current[user.id];
-              }
-              remoteStreamsRef.current.delete(user.id);
-            } else if (!peerConnectionsRef.current.has(user.id)) {
-              console.log("🔗 Connecting to:", user.id);
-              createPeerConnection(user.id);
-            }
+          if (
+            user.id !== currentUser.id &&
+            !user.isWatcher &&
+            !peerConnectionsRef.current.has(user.id) // ✅ ADD THIS
+          ) {
+            console.log("🔗 Connecting to:", user.id);
+            createPeerConnection(user.id);
           }
         });
       });
@@ -1035,6 +1016,36 @@ export default function RoomPage() {
     }
   };
 
+  /* ================= TOGGLE SOUND ================= */
+  const toggleSound = () => {
+    const newMuted = !soundMuted;
+    setSoundMuted(newMuted);
+    soundMutedRef.current = newMuted;
+
+    if (socketRef.current) {
+      socketRef.current.emit("sound:state", newMuted);
+    }
+
+    // Apply to all active remote audio elements
+    Object.keys(remoteAudioRefs.current).forEach((peerId) => {
+      const audio = remoteAudioRefs.current[peerId];
+      if (audio) {
+        audio.muted = newMuted;
+      }
+    });
+
+    // Apply to video player
+    if (videoRef.current) {
+      videoRef.current.muted = newMuted;
+    }
+  };
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.muted = soundMuted;
+    }
+  }, [soundMuted]);
+
   const handleLeaveSeat = () => {
     if (!socketRef.current) return;
 
@@ -1057,7 +1068,7 @@ export default function RoomPage() {
       try {
         audio.srcObject = null;
         audio.pause();
-      } catch {}
+      } catch { }
     });
 
     remoteAudioRefs.current = {};
@@ -1272,11 +1283,10 @@ export default function RoomPage() {
         <button
           onClick={handleJoin}
           disabled={joined}
-          className={`px-3 py-1 rounded text-sm font-medium ${
-            joined
+          className={`px-3 py-1 rounded text-sm font-medium ${joined
               ? "bg-gray-600 cursor-not-allowed"
               : "bg-green-500 hover:bg-green-600"
-          }`}
+            }`}
         >
           {joined ? "✓ Joined" : "Join"}
         </button>
@@ -1444,7 +1454,7 @@ export default function RoomPage() {
             src={videoUrl}
             controls
             playsInline
-            muted={false}
+            muted={soundMuted}
             className="max-w-full rounded-lg"
           />
         </div>
@@ -1525,6 +1535,7 @@ export default function RoomPage() {
           roomId={roomId}
           socket={socketRef.current}
           currentUser={currentUser}
+          soundMuted={soundMuted}
         />
       )}
 
@@ -1653,9 +1664,8 @@ export default function RoomPage() {
                 <button
                   key={m}
                   onClick={() => setPkMode(m)}
-                  className={`flex-1 py-1 rounded ${
-                    pkMode === m ? "bg-blue-600" : "bg-gray-700"
-                  }`}
+                  className={`flex-1 py-1 rounded ${pkMode === m ? "bg-blue-600" : "bg-gray-700"
+                    }`}
                 >
                   {m}
                 </button>
@@ -1668,9 +1678,8 @@ export default function RoomPage() {
                 <button
                   key={t}
                   onClick={() => setPkDuration(t)}
-                  className={`flex-1 py-1 rounded ${
-                    pkDuration === t ? "bg-green-600" : "bg-gray-700"
-                  }`}
+                  className={`flex-1 py-1 rounded ${pkDuration === t ? "bg-green-600" : "bg-gray-700"
+                    }`}
                 >
                   {t}s
                 </button>
@@ -1753,10 +1762,15 @@ export default function RoomPage() {
           />
         </button>
         <button
+          onClick={toggleSound}
           className="p-3 rounded-full hover:bg-gray-700 transition flex-1 flex justify-center"
           title="Volume control"
         >
-          <HiOutlineVolumeUp className="text-2xl text-gray-400" />
+          {soundMuted ? (
+            <HiOutlineVolumeOff className="text-2xl text-red-400" />
+          ) : (
+            <HiOutlineVolumeUp className="text-2xl text-green-400" />
+          )}
         </button>
       </div>
       {/* ⚙️ ROOM SETTINGS MODAL */}
@@ -1783,11 +1797,10 @@ export default function RoomPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`flex-1 pb-3 text-center transition-all relative font-medium ${
-                    activeTab === tab
+                  className={`flex-1 pb-3 text-center transition-all relative font-medium ${activeTab === tab
                       ? "text-white font-semibold"
                       : "text-gray-400 hover:text-gray-200"
-                  }`}
+                    }`}
                 >
                   {tab}
                   {activeTab === tab && (
@@ -1811,11 +1824,10 @@ export default function RoomPage() {
                         <button
                           key={num}
                           onClick={() => handleSeatChange(num)}
-                          className={`py-2 px-3 rounded-xl border text-sm transition font-medium ${
-                            seatCount === num
+                          className={`py-2 px-3 rounded-xl border text-sm transition font-medium ${seatCount === num
                               ? "bg-white text-black border-white"
                               : "bg-gray-900 text-gray-300 border-gray-800 hover:border-gray-700"
-                          }`}
+                            }`}
                         >
                           {num} Slots
                         </button>

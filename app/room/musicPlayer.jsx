@@ -5,7 +5,7 @@ import axios from "axios";
 
 const API = "https://api.dilvoicechat.fun";
 
-export default function MusicPlayer({ roomId, socket, currentUser }) {
+export default function MusicPlayer({ roomId, socket, currentUser, soundMuted }) {
   const audioRef = useRef(null);
 
   const [musicList, setMusicList] = useState([]);
@@ -60,6 +60,13 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
       userId: currentUser.id,
     });
 
+  /* ================= SOUND MUTING EFFECT ================= */
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.muted = !!soundMuted;
+    }
+  }, [soundMuted]);
+
   /* ================= SOCKET SYNC ================= */
   useEffect(() => {
     if (!socket) return;
@@ -70,6 +77,7 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
       const audio = audioRef.current;
       audio.src = data.musicUrl;
       audio.currentTime = (Date.now() - data.startedAt) / 1000;
+      audio.muted = !!soundMuted;
       audio.play().catch(() => {});
 
       setCurrentSong(data.musicFile.name);
@@ -85,6 +93,7 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
     socket.on("music:resumed", ({ startedAt }) => {
       const audio = audioRef.current;
       audio.currentTime = (Date.now() - startedAt) / 1000;
+      audio.muted = !!soundMuted;
       audio.play().catch(() => {});
       setStartedAt(startedAt);
       setIsPlaying(true);
@@ -105,6 +114,7 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
 
       const audio = audioRef.current;
       audio.src = state.musicUrl;
+      audio.muted = !!soundMuted;
 
       if (state.isPlaying && state.startedAt) {
         audio.currentTime = (Date.now() - state.startedAt) / 1000;
@@ -128,7 +138,7 @@ export default function MusicPlayer({ roomId, socket, currentUser }) {
       socket.off("music:uploaded");
       socket.off("music:list:deleted");
     };
-  }, [socket]);
+  }, [socket, soundMuted]);
 
   useEffect(() => {
     loadMusic();
