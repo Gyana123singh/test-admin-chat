@@ -624,6 +624,23 @@ export default function RoomPage() {
     console.log(`📥 Offer received from ${from}`);
 
     try {
+      // Recycle existing peer connection for this sender if it exists
+      if (peerConnectionsRef.current.has(from)) {
+        console.log(`♻️ Recycling stale peer connection from ${from} to process new offer`);
+        const oldPc = peerConnectionsRef.current.get(from);
+        try { oldPc.close(); } catch (e) {}
+        peerConnectionsRef.current.delete(from);
+
+        if (remoteAudioRefs.current[from]) {
+          try {
+            remoteAudioRefs.current[from].srcObject = null;
+            remoteAudioRefs.current[from].pause();
+          } catch (e) {}
+          delete remoteAudioRefs.current[from];
+        }
+        remoteStreamsRef.current.delete(from);
+      }
+
       const pc = await createPeerConnection(from);
 
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
@@ -787,6 +804,14 @@ export default function RoomPage() {
     if (joined || !currentUser) return;
 
     try {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("autoJoin", "true");
+        if (pass) {
+          sessionStorage.setItem("roomPassword", pass);
+        } else {
+          sessionStorage.removeItem("roomPassword");
+        }
+      }
       console.log("📤 Joining room:", { roomId, userId: currentUser.id, pass });
 
       console.log("🎤 Requesting microphone...");
@@ -816,6 +841,22 @@ export default function RoomPage() {
 
       socketRef.current.on("connect", () => {
         console.log("✅ Socket connected");
+
+        // Recycle WebRTC connections on socket connect/reconnect
+        console.log("♻️ Recycling all peer connections for self-healing WebRTC...");
+        peerConnectionsRef.current.forEach((pc) => {
+          try { pc.close(); } catch (e) {}
+        });
+        peerConnectionsRef.current.clear();
+
+        Object.values(remoteAudioRefs.current).forEach((audio) => {
+          try {
+            audio.srcObject = null;
+            audio.pause();
+          } catch (e) {}
+        });
+        remoteAudioRefs.current = {};
+        remoteStreamsRef.current.clear();
 
         socketRef.current.emit("user:connect", {
           userId: currentUser.id,
@@ -1206,8 +1247,28 @@ export default function RoomPage() {
       localStreamRef.current?.getTracks().forEach((t) => t.stop());
       remoteStreamsRef.current.clear();
       socketRef.current?.disconnect();
+
+      // Clear autoJoin only if navigating away from this room
+      if (typeof window !== "undefined" && !window.location.pathname.includes(roomId)) {
+        sessionStorage.removeItem("autoJoin");
+        sessionStorage.removeItem("roomPassword");
+      }
     };
-  }, []);
+  }, [roomId]);
+
+  /* ================= AUTO-JOIN RECOVERY ================= */
+  useEffect(() => {
+    if (currentUser && roomId && !joined) {
+      if (typeof window !== "undefined") {
+        const autoJoin = sessionStorage.getItem("autoJoin");
+        if (autoJoin === "true") {
+          const pass = sessionStorage.getItem("roomPassword") || null;
+          console.log("🔄 Auto-joining room after refresh or reconnect...");
+          handleJoin(pass);
+        }
+      }
+    }
+  }, [currentUser, roomId, joined]);
 
   if (!room || !currentUser)
     return (
