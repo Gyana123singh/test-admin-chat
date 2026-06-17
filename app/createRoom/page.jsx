@@ -23,7 +23,7 @@ export default function CreateRoomPage() {
       }
 
       const res = await axios.post(
-        "https://api.dilvoicechat.fun/api/rooms/create",
+        `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/create`,
         { mode: activeTab },
         {
           headers: {

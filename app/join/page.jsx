@@ -19,7 +19,7 @@ export default function JoinedPage() {
     const fetchRooms = async () => {
       try {
         const res = await axios.get(
-          "https://api.dilvoicechat.fun/api/rooms/get-all-rooms"
+          `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/get-all-rooms`
         );
 
         console.log("ROOMS →", res.data.rooms);
