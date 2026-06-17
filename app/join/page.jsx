@@ -13,16 +13,20 @@ export default function JoinedPage() {
 
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("Joined"); // "Joined" or "Popular"
 
   /* ================= FETCH ROOMS ================= */
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/get-all-rooms`
-        );
+        setLoading(true);
+        const endpoint = activeTab === "Popular"
+          ? `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/get-popular-rooms`
+          : `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/get-all-rooms`;
 
-        console.log("ROOMS →", res.data.rooms);
+        const res = await axios.get(endpoint);
+
+        console.log(`${activeTab} ROOMS →`, res.data.rooms);
         setRooms(res.data.rooms || []);
       } catch (error) {
         console.error(
@@ -35,7 +39,7 @@ export default function JoinedPage() {
     };
 
     fetchRooms();
-  }, []);
+  }, [activeTab]);
 
   return (
     <div className="max-w-[420px] mx-auto min-h-screen bg-white pb-20">
@@ -43,12 +47,24 @@ export default function JoinedPage() {
       <header className="flex items-center justify-between px-4 py-3 border-b">
         <HiMenuAlt2 className="text-2xl text-teal-500" />
 
-        <div className="flex gap-6 text-gray-400">
-          <span>Explore</span>
-          <span>Home</span>
-          <span className="text-black font-semibold relative">
+        <div className="flex gap-6 text-gray-400 text-sm font-medium">
+          <span
+            onClick={() => setActiveTab("Joined")}
+            className={`cursor-pointer transition-all duration-200 hover:text-teal-500 relative py-1 ${activeTab === "Joined" ? "text-black font-semibold" : ""}`}
+          >
             Joined
-            <span className="absolute left-1/2 -bottom-2 w-6 h-[2px] bg-teal-500 -translate-x-1/2" />
+            {activeTab === "Joined" && (
+              <span className="absolute left-1/2 bottom-0 w-6 h-[2px] bg-teal-500 -translate-x-1/2 transition-all duration-300" />
+            )}
+          </span>
+          <span
+            onClick={() => setActiveTab("Popular")}
+            className={`cursor-pointer transition-all duration-200 hover:text-teal-500 relative py-1 ${activeTab === "Popular" ? "text-black font-semibold" : ""}`}
+          >
+            Popular
+            {activeTab === "Popular" && (
+              <span className="absolute left-1/2 bottom-0 w-6 h-[2px] bg-teal-500 -translate-x-1/2 transition-all duration-300" />
+            )}
           </span>
         </div>
 
@@ -89,7 +105,7 @@ export default function JoinedPage() {
       </div>
 
       {/* JOINED TITLE */}
-      <h2 className="mt-8 px-4 text-lg font-semibold">Joined</h2>
+      <h2 className="mt-8 px-4 text-lg font-semibold">{activeTab} Rooms</h2>
 
       {/* ROOMS LIST */}
       {loading ? (

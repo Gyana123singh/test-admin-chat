@@ -365,7 +365,7 @@ export default function RoomPage() {
     (async () => {
       try {
         const res = await axios.get(
-          `https://api.dilvoicechat.fun/api/rooms/${roomId}`,
+          `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/${roomId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setRoom(res.data.room);
@@ -387,7 +387,7 @@ export default function RoomPage() {
     form.append("userId", currentUser.id);
 
     await axios.post(
-      `https://api.dilvoicechat.fun/api/video/upload/${roomId}`,
+      `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/video/upload/${roomId}`,
       form,
       {
         headers: { Authorization: `Bearer ${token}` },
@@ -410,7 +410,7 @@ export default function RoomPage() {
   /* ================= VIDEO CONTROLS ================= */
   const playVideo = async () => {
     await axios.post(
-      `https://api.dilvoicechat.fun/api/video/play/${roomId}`,
+      `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/video/play/${roomId}`,
       { userId: currentUser.id },
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -418,7 +418,7 @@ export default function RoomPage() {
 
   const pauseVideo = async () => {
     await axios.post(
-      `https://api.dilvoicechat.fun/api/video/pause/${roomId}`,
+      `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/video/pause/${roomId}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -426,7 +426,7 @@ export default function RoomPage() {
 
   const resumeVideo = async () => {
     await axios.post(
-      `https://api.dilvoicechat.fun/api/video/resume/${roomId}`,
+      `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/video/resume/${roomId}`,
       {},
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -438,7 +438,7 @@ export default function RoomPage() {
 
     const socket = socketRef.current;
     socket.on("video:play", ({ videoUrl, currentTime }) => {
-      setVideoUrl(`https://api.dilvoicechat.fun${videoUrl}`);
+      setVideoUrl(`${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}${videoUrl}`);
       setVideoVisible(true);
 
       setTimeout(() => {
@@ -476,7 +476,7 @@ export default function RoomPage() {
     socket.on("room:videoState", ({ video }) => {
       if (!video?.fileName || !video.isVisible) return;
 
-      const url = `https://api.dilvoicechat.fun/video-stream/${roomId}/${video.fileName}`;
+      const url = `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/video-stream/${roomId}/${video.fileName}`;
 
       setVideoUrl(url);
       setVideoVisible(true);
@@ -629,14 +629,14 @@ export default function RoomPage() {
       if (peerConnectionsRef.current.has(from)) {
         console.log(`♻️ Recycling stale peer connection from ${from} to process new offer`);
         const oldPc = peerConnectionsRef.current.get(from);
-        try { oldPc.close(); } catch (e) {}
+        try { oldPc.close(); } catch (e) { }
         peerConnectionsRef.current.delete(from);
 
         if (remoteAudioRefs.current[from]) {
           try {
             remoteAudioRefs.current[from].srcObject = null;
             remoteAudioRefs.current[from].pause();
-          } catch (e) {}
+          } catch (e) { }
           delete remoteAudioRefs.current[from];
         }
         remoteStreamsRef.current.delete(from);
@@ -804,16 +804,19 @@ export default function RoomPage() {
   const handleJoin = async (pass = null) => {
     if (joined || !currentUser) return;
 
+    // Filter out React click event object if passed directly as onClick
+    const password = typeof pass === "string" ? pass : null;
+
     try {
       if (typeof window !== "undefined") {
         sessionStorage.setItem("autoJoin", "true");
-        if (pass) {
-          sessionStorage.setItem("roomPassword", pass);
+        if (password) {
+          sessionStorage.setItem("roomPassword", password);
         } else {
           sessionStorage.removeItem("roomPassword");
         }
       }
-      console.log("📤 Joining room:", { roomId, userId: currentUser.id, pass });
+      console.log("📤 Joining room:", { roomId, userId: currentUser.id, pass: password });
 
       console.log("🎤 Requesting microphone...");
       localStreamRef.current = await navigator.mediaDevices.getUserMedia({
@@ -827,8 +830,8 @@ export default function RoomPage() {
       setMicOn(true);
 
       const joinRes = await axios.post(
-        `https://api.dilvoicechat.fun/api/rooms/${roomId}/join`,
-        { password: pass },
+        `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/${roomId}/join`,
+        { password },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       console.log("✅ HTTP join successful");
@@ -846,7 +849,7 @@ export default function RoomPage() {
         // Recycle WebRTC connections on socket connect/reconnect
         console.log("♻️ Recycling all peer connections for self-healing WebRTC...");
         peerConnectionsRef.current.forEach((pc) => {
-          try { pc.close(); } catch (e) {}
+          try { pc.close(); } catch (e) { }
         });
         peerConnectionsRef.current.clear();
 
@@ -854,7 +857,7 @@ export default function RoomPage() {
           try {
             audio.srcObject = null;
             audio.pause();
-          } catch (e) {}
+          } catch (e) { }
         });
         remoteAudioRefs.current = {};
         remoteStreamsRef.current.clear();
@@ -867,7 +870,7 @@ export default function RoomPage() {
 
         socketRef.current.emit("room:join", {
           roomId,
-          password: pass,
+          password: password,
           user: {
             id: currentUser.id,
             username: currentUser.username,
@@ -1343,11 +1346,11 @@ export default function RoomPage() {
           </button>
         )}
         <button
-          onClick={handleJoin}
+          onClick={() => handleJoin()}
           disabled={joined}
           className={`px-3 py-1 rounded text-sm font-medium ${joined
-              ? "bg-gray-600 cursor-not-allowed"
-              : "bg-green-500 hover:bg-green-600"
+            ? "bg-gray-600 cursor-not-allowed"
+            : "bg-green-500 hover:bg-green-600"
             }`}
         >
           {joined ? "✓ Joined" : "Join"}
@@ -1765,7 +1768,7 @@ export default function RoomPage() {
                   try {
                     // 1️⃣ Create PK via API
                     const res = await axios.post(
-                      "https://api.dilvoicechat.fun/api/pk/create-pk",
+                      `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/pk/create-pk`,
                       {
                         roomId,
                         leftUserId: pkLeftUser.id,
@@ -1860,8 +1863,8 @@ export default function RoomPage() {
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   className={`flex-1 pb-3 text-center transition-all relative font-medium ${activeTab === tab
-                      ? "text-white font-semibold"
-                      : "text-gray-400 hover:text-gray-200"
+                    ? "text-white font-semibold"
+                    : "text-gray-400 hover:text-gray-200"
                     }`}
                 >
                   {tab}
@@ -1887,8 +1890,8 @@ export default function RoomPage() {
                           key={num}
                           onClick={() => handleSeatChange(num)}
                           className={`py-2 px-3 rounded-xl border text-sm transition font-medium ${seatCount === num
-                              ? "bg-white text-black border-white"
-                              : "bg-gray-900 text-gray-300 border-gray-800 hover:border-gray-700"
+                            ? "bg-white text-black border-white"
+                            : "bg-gray-900 text-gray-300 border-gray-800 hover:border-gray-700"
                             }`}
                         >
                           {num} Slots
@@ -2050,7 +2053,7 @@ export default function RoomPage() {
                   }
                   try {
                     await axios.put(
-                      `https://api.dilvoicechat.fun/api/rooms/${roomId}/password`,
+                      `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/${roomId}/password`,
                       { password: roomPasswordInput.trim() },
                       { headers: { Authorization: `Bearer ${token}` } }
                     );
@@ -2094,7 +2097,7 @@ export default function RoomPage() {
                 onClick={async () => {
                   try {
                     await axios.put(
-                      `https://api.dilvoicechat.fun/api/rooms/${roomId}/unlock`,
+                      `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/${roomId}/unlock`,
                       {},
                       { headers: { Authorization: `Bearer ${token}` } }
                     );
