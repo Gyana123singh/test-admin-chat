@@ -370,6 +370,7 @@ export default function RoomPage() {
         );
         setRoom(res.data.room);
         setIsRoomLocked(res.data.room.isLocked || false);
+        setLockedSeats(res.data.room.lockedSeats || []);
       } catch (err) {
         console.error("❌ Fetch room error:", err);
         setError("Failed to load room");
