@@ -37,6 +37,8 @@ export default function HelpLineManagement() {
   const [primaryEmailCustom, setPrimaryEmailCustom] = useState("");
   const [alternativeEmails, setAlternativeEmails] = useState([]); // Up to 2 alternative emails
   const [isActive, setIsActive] = useState(true);
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
 
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -104,6 +106,8 @@ export default function HelpLineManagement() {
     setPrimaryEmailType("admin");
     setPrimaryEmailCustom("");
     setAlternativeEmails([]);
+    setAvatarFile(null);
+    setAvatarPreview(null);
     setIsCreateOpen(true);
   };
 
@@ -134,6 +138,9 @@ export default function HelpLineManagement() {
     }
 
     setIsEditOpen(true);
+    // preload avatar preview if available
+    setAvatarFile(null);
+    setAvatarPreview(room.coverImage || room.creatorAvatar || null);
   };
 
   // Helper to compile final helpEmails list (Max 3 total)
@@ -154,13 +161,25 @@ export default function HelpLineManagement() {
     setSaving(true);
     try {
       const finalEmails = compileHelpEmails();
-      const res = await helpRoomApi.createHelpRoom({
-        title,
-        description,
-        category,
-        privacy,
-        helpEmails: finalEmails,
-      });
+      let res;
+      if (avatarFile) {
+        const form = new FormData();
+        form.append("title", title);
+        form.append("description", description);
+        form.append("category", category);
+        form.append("privacy", privacy);
+        form.append("helpEmails", JSON.stringify(finalEmails));
+        form.append("avatar", avatarFile);
+        res = await helpRoomApi.createHelpRoom(form);
+      } else {
+        res = await helpRoomApi.createHelpRoom({
+          title,
+          description,
+          category,
+          privacy,
+          helpEmails: finalEmails,
+        });
+      }
 
       if (res.success) {
         alert("Help Room created successfully!");
@@ -186,14 +205,27 @@ export default function HelpLineManagement() {
     setSaving(true);
     try {
       const finalEmails = compileHelpEmails();
-      const res = await helpRoomApi.updateHelpRoom(editingRoom.roomId, {
-        title,
-        description,
-        category,
-        privacy,
-        helpEmails: finalEmails,
-        isActive,
-      });
+      let res;
+      if (avatarFile) {
+        const form = new FormData();
+        form.append("title", title);
+        form.append("description", description);
+        form.append("category", category);
+        form.append("privacy", privacy);
+        form.append("helpEmails", JSON.stringify(finalEmails));
+        form.append("isActive", isActive);
+        form.append("avatar", avatarFile);
+        res = await helpRoomApi.updateHelpRoom(editingRoom.roomId, form);
+      } else {
+        res = await helpRoomApi.updateHelpRoom(editingRoom.roomId, {
+          title,
+          description,
+          category,
+          privacy,
+          helpEmails: finalEmails,
+          isActive,
+        });
+      }
 
       if (res.success) {
         alert("Help Room updated successfully!");
@@ -296,9 +328,13 @@ export default function HelpLineManagement() {
                   <tr key={room._id} className="hover:bg-gray-50/50 duration-100">
                     <td className="p-4 pl-6">
                       <div className="flex items-center gap-3">
-                        <span className="w-10 h-10 bg-blue-100 text-blue-600 font-bold rounded-xl flex items-center justify-center text-lg shadow-inner">
-                          {room.title ? room.title.substring(0, 2).toUpperCase() : "HL"}
-                        </span>
+                              {room.coverImage || room.creatorAvatar ? (
+                                <img src={room.coverImage || room.creatorAvatar} alt={room.title} className="w-10 h-10 rounded-xl object-cover shadow-inner" />
+                              ) : (
+                                <span className="w-10 h-10 bg-blue-100 text-blue-600 font-bold rounded-xl flex items-center justify-center text-lg shadow-inner">
+                                  {room.title ? room.title.substring(0, 2).toUpperCase() : "HL"}
+                                </span>
+                              )}
                         <div>
                           <div className="font-bold text-gray-800 text-base">{room.title}</div>
                           {room.description && (
@@ -400,6 +436,33 @@ export default function HelpLineManagement() {
                   placeholder="e.g. WAFA Support | वाफ़ा समर्थन"
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 duration-150"
                 />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-semibold text-sm mb-1.5">Profile Image (optional)</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-gray-400 text-sm">No image</div>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        setAvatarFile(f);
+                        if (f) setAvatarPreview(URL.createObjectURL(f));
+                        else setAvatarPreview(null);
+                      }}
+                      className="text-sm"
+                    />
+                    <div className="text-xs text-gray-400 mt-1">Accepted: JPG, PNG, GIF</div>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -560,6 +623,33 @@ export default function HelpLineManagement() {
                   className="w-full border border-gray-300 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none text-gray-700 duration-150"
                 />
               </div>
+
+                <div>
+                  <label className="block text-gray-700 font-semibold text-sm mb-1.5">Profile Image (optional)</label>
+                  <div className="flex items-center gap-3">
+                    <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
+                      {avatarPreview ? (
+                        <img src={avatarPreview} alt="preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="text-gray-400 text-sm">No image</div>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] || null;
+                          setAvatarFile(f);
+                          if (f) setAvatarPreview(URL.createObjectURL(f));
+                          else setAvatarPreview(null);
+                        }}
+                        className="text-sm"
+                      />
+                      <div className="text-xs text-gray-400 mt-1">Accepted: JPG, PNG, GIF</div>
+                    </div>
+                  </div>
+                </div>
 
               <div>
                 <label className="block text-gray-700 font-semibold text-sm mb-1.5">Description</label>

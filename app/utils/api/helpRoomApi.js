@@ -11,6 +11,13 @@ export const helpRoomApi = {
   },
   createHelpRoom: async (payload) => {
     try {
+      // support FormData (file upload) or JSON payload
+      if (payload instanceof FormData) {
+        const response = await instanceApi.post("/api/help-room", payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        return response.data;
+      }
       const response = await instanceApi.post("/api/help-room", payload);
       return response.data;
     } catch (error) {
@@ -19,6 +26,12 @@ export const helpRoomApi = {
   },
   updateHelpRoom: async (roomId, payload) => {
     try {
+      if (payload instanceof FormData) {
+        const response = await instanceApi.put(`/api/help-room/${roomId}`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        return response.data;
+      }
       const response = await instanceApi.put(`/api/help-room/${roomId}`, payload);
       return response.data;
     } catch (error) {
