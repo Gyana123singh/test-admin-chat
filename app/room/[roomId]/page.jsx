@@ -43,6 +43,7 @@ export default function RoomPage() {
   const [audioStatus, setAudioStatus] = useState("waiting");
   const [showSeatOptions, setShowSeatOptions] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedSeatNumber, setSelectedSeatNumber] = useState(null);
   // ✅ NEW MESSAGING STATES
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
@@ -327,6 +328,35 @@ export default function RoomPage() {
       setRoom((prev) => prev ? { ...prev, isLocked } : null);
     });
 
+    socket.on("room:error", ({ message }) => {
+      console.log("⚠️ Room error received:", message);
+      alert(message || "An error occurred");
+    });
+
+    socket.on("room:seat:forceRemoved", () => {
+      console.log("🪑 Kicked from seat by host");
+      // Stop local stream
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((t) => t.stop());
+        localStreamRef.current = null;
+      }
+      setMicOn(false);
+      // Close peer connections
+      peerConnectionsRef.current.forEach((pc) => pc.close());
+      peerConnectionsRef.current.clear();
+      // Stop remote audio
+      Object.values(remoteAudioRefs.current).forEach((audio) => {
+        try {
+          audio.srcObject = null;
+          audio.pause();
+        } catch {}
+      });
+      remoteAudioRefs.current = {};
+      remoteStreamsRef.current.clear();
+      setAudioStatus("waiting");
+      alert("You have been removed from the seat by the host");
+    });
+
     return () => {
       socket.off("room:seat:locked");
       socket.off("room:seat:unlocked");
@@ -335,6 +365,8 @@ export default function RoomPage() {
       socket.off("room:adminAdded");
       socket.off("mic:update");
       socket.off("room:lockedState");
+      socket.off("room:error");
+      socket.off("room:seat:forceRemoved");
     };
   }, [joined]);
 
@@ -879,6 +911,10 @@ export default function RoomPage() {
         });
         console.log("📤 Room join emitted");
 
+        // Automatically take a seat on join
+        socketRef.current.emit("room:takeSeat", { roomId });
+        console.log("📤 Auto-takeSeat emitted");
+
         setJoined(true);
       });
 
@@ -1152,26 +1188,42 @@ export default function RoomPage() {
   };
 
   const lockSeat = () => {
-    if (!socketRef.current) return;
+    if (!socketRef.current || !selectedSeatNumber) return;
 
-    const userId =
-      selectedUser?.id || selectedUser?.userId || selectedUser?._id;
-
-    if (!userId) return;
-
-    const seatIndex = participants.findIndex(
-      (u) => (u?.id || u?.userId || u?._id) === userId,
-    );
-
-    if (seatIndex === -1) return;
-
-    const seatNumber = seatIndex + 1;
-
-    console.log("📤 Locking seat:", seatNumber);
+    console.log("📤 Locking seat:", selectedSeatNumber);
 
     socketRef.current.emit("room:seat:lock", {
       roomId,
-      seatNumber,
+      seatNumber: selectedSeatNumber,
+    });
+
+    setShowSeatOptions(false);
+  };
+
+  const unlockSeat = () => {
+    if (!socketRef.current || !selectedSeatNumber) return;
+
+    console.log("📤 Unlocking seat:", selectedSeatNumber);
+
+    socketRef.current.emit("room:seat:unlock", {
+      roomId,
+      seatNumber: selectedSeatNumber,
+    });
+
+    setShowSeatOptions(false);
+  };
+
+  const removeFromSeat = () => {
+    if (!socketRef.current || !selectedUser) return;
+
+    const userId = selectedUser.id || selectedUser.userId || selectedUser._id;
+    if (!userId) return;
+
+    console.log("📤 Removing user from seat:", userId);
+
+    socketRef.current.emit("room:seat:forceLeave", {
+      roomId,
+      userId,
     });
 
     setShowSeatOptions(false);
@@ -1202,15 +1254,6 @@ export default function RoomPage() {
     setShowSeatOptions(false);
   };
 
-  const lockAllSeats = () => {
-    if (!socketRef.current || !socketRef.current.connected) return;
-
-    console.log("📤 Lock all seats");
-
-    socketRef.current.emit("room:seats:lockAll", { roomId });
-
-    setShowSeatOptions(false);
-  };
 
   const giveAdmin = () => {
     if (!socketRef.current || !socketRef.current.connected) return;
@@ -1382,48 +1425,46 @@ export default function RoomPage() {
       {participants.length > 0 && (
         <div className="grid grid-cols-4 gap-4 p-4">
           {Array.from({ length: seatCount }).map((_, i) => {
-            const user = participants[i];
-
-            const isLocked = lockedSeats.includes(i + 1); // ✅ REQUIRED
+            const user = participants.find((u) => !u.isWatcher && u.seatIndex === i);
+            const seatNumber = i + 1;
+            const isLocked = lockedSeats.includes(seatNumber); // ✅ REQUIRED
 
             return (
               <div
                 key={i}
                 className="flex flex-col items-center"
                 onClick={() => {
-                  if (!user) return;
-                  if (!isHost) return;
+                  if (!isHost) {
+                    if (joined && !user && !isLocked) {
+                      socketRef.current.emit("room:takeSeat", { roomId, seatNumber });
+                    }
+                    return;
+                  }
 
-                  const userId = user?.id || user?.userId || user?._id;
-                  if (!userId) return;
-
-                  setSelectedUser({
-                    ...user,
-                    id: userId,
-                  });
-
+                  setSelectedSeatNumber(seatNumber);
+                  setSelectedUser(user || null);
                   setShowSeatOptions(true);
                 }}
               >
                 <div
-                  className={`w-14 h-14 rounded-full flex items-center justify-center
-          ${isLocked ? "bg-red-600" : "bg-gray-700"}
-        `}
+                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all cursor-pointer
+                    ${user ? "bg-gray-800 border-2 border-green-500" : isLocked ? "bg-red-950 border border-red-600" : "bg-gray-700 hover:bg-gray-650"}
+                  `}
                 >
-                  {isLocked ? (
-                    <span>🔒</span>
-                  ) : user ? (
+                  {user ? (
                     <img
                       src={user.avatar}
                       className="w-full h-full rounded-full"
                     />
+                  ) : isLocked ? (
+                    <span>🔒</span>
                   ) : (
-                    <span className="text-gray-400">N</span>
+                    <span className="text-gray-400 font-medium">N</span>
                   )}
                 </div>
 
-                <p className="text-xs text-gray-400 mt-1">
-                  {user?.displayId ? `ID: ${user.displayId}` : `No. ${i + 1}`}
+                <p className="text-[10px] text-gray-400 mt-1 text-center truncate w-16">
+                  {user ? (user.username || `ID: ${user.displayId}`) : isLocked ? "Locked" : `No. ${seatNumber}`}
                 </p>
               </div>
             );
@@ -2008,15 +2049,6 @@ export default function RoomPage() {
                   >
                     🔇 Mute Everyone
                   </button>
-                  <button
-                    onClick={() => {
-                      lockAllSeats();
-                      setShowSettingsModal(false);
-                    }}
-                    className="w-full py-3 px-4 bg-gray-900 border border-gray-800 rounded-xl text-left text-sm font-medium text-red-400 hover:bg-gray-800 transition"
-                  >
-                    🔒 Lock All Seats
-                  </button>
                 </div>
               )}
             </div>
@@ -2170,58 +2202,85 @@ export default function RoomPage() {
 
       {showSeatOptions && isHost && (
         <div className="fixed inset-0 bg-black/60 flex items-end z-50">
-          <div className="w-full bg-[#0f0f1a] rounded-t-2xl p-5">
-            <h2 className="text-center text-lg font-semibold mb-5">
-              Seat Options
+          <div className="w-full bg-[#0f0f1a] rounded-t-2xl p-5 max-w-md mx-auto border-t border-gray-800">
+            <h2 className="text-center text-lg font-semibold mb-5 text-white">
+              Seat {selectedSeatNumber} Options
             </h2>
 
-            <div className="space-y-4 text-sm">
-              <button
-                onClick={inviteUser}
-                className="w-full flex items-center gap-3 py-3 border-b border-gray-700"
-              >
-                👥 Invite
-              </button>
+            <div className="space-y-2 text-sm text-gray-300">
+              {/* If occupied, show user-specific options */}
+              {selectedUser ? (
+                <>
+                  <div className="flex items-center gap-3 p-3 bg-gray-900 rounded-xl mb-4">
+                    <img src={selectedUser.avatar} className="w-10 h-10 rounded-full" />
+                    <div>
+                      <p className="font-semibold text-white">{selectedUser.username}</p>
+                      <p className="text-xs text-gray-400">ID: {selectedUser.displayId || "Unknown"}</p>
+                    </div>
+                  </div>
 
-              <button
-                onClick={lockSeat}
-                className="w-full flex items-center gap-3 py-3 border-b border-gray-700"
-              >
-                🔒 Lock Seat
-              </button>
+                  <button
+                    onClick={micOff}
+                    className="w-full flex items-center gap-3 py-3 px-4 hover:bg-gray-800 rounded-xl transition text-left"
+                  >
+                    🎤 Mic Off
+                  </button>
 
-              <button
-                onClick={micOff}
-                className="w-full flex items-center gap-3 py-3 border-b border-gray-700"
-              >
-                🎤 Mic Off
-              </button>
+                  <button
+                    onClick={removeFromSeat}
+                    className="w-full flex items-center gap-3 py-3 px-4 hover:bg-gray-800 rounded-xl transition text-left text-red-400 font-semibold"
+                  >
+                    👢 Remove from Seat
+                  </button>
 
-              <button
-                onClick={muteAll}
-                className="w-full flex items-center gap-3 py-3 border-b border-gray-700"
-              >
-                🔇 Mute Everyone
-              </button>
+                  <button
+                    onClick={giveAdmin}
+                    className="w-full flex items-center gap-3 py-3 px-4 hover:bg-gray-800 rounded-xl transition text-left"
+                  >
+                    👑 Give Admin
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={inviteUser}
+                    className="w-full flex items-center gap-3 py-3 px-4 hover:bg-gray-800 rounded-xl transition text-left"
+                  >
+                    👥 Invite User to Seat
+                  </button>
+                </>
+              )}
 
-              <button
-                onClick={lockAllSeats}
-                className="w-full flex items-center gap-3 py-3 border-b border-gray-700 text-red-400"
-              >
-                🔒 Lock All Seats
-              </button>
+              {/* Lock / Unlock options */}
+              {selectedSeatNumber && lockedSeats.includes(selectedSeatNumber) ? (
+                <button
+                  onClick={unlockSeat}
+                  className="w-full flex items-center gap-3 py-3 px-4 hover:bg-gray-800 rounded-xl transition text-left text-green-400 font-semibold"
+                >
+                  🔓 Unlock Seat
+                </button>
+              ) : (
+                <button
+                  onClick={lockSeat}
+                  className="w-full flex items-center gap-3 py-3 px-4 hover:bg-gray-800 rounded-xl transition text-left text-red-400"
+                >
+                  🔒 Lock Seat
+                </button>
+              )}
 
-              <button
-                onClick={giveAdmin}
-                className="w-full flex items-center gap-3 py-3"
-              >
-                👑 Give Admin
-              </button>
+              <div className="border-t border-gray-800 my-2 pt-2">
+                <button
+                  onClick={muteAll}
+                  className="w-full flex items-center gap-3 py-3 px-4 hover:bg-gray-800 rounded-xl transition text-left"
+                >
+                  🔇 Mute Everyone
+                </button>
+              </div>
             </div>
 
             <button
               onClick={() => setShowSeatOptions(false)}
-              className="mt-5 w-full bg-gray-800 py-2 rounded-lg"
+              className="mt-5 w-full bg-gray-800 hover:bg-gray-700 text-white font-medium py-3 rounded-xl transition"
             >
               Cancel
             </button>
