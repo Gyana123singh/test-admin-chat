@@ -377,10 +377,15 @@ export default function RoomPage() {
 
     try {
       const decoded = JSON.parse(atob(token.split(".")[1]));
+      const username = decoded.username || decoded.name || "User";
+      const avatarFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        username,
+      )}&background=6c3eff&color=fff`;
+
       setCurrentUser({
         id: decoded.sub || decoded.id || decoded._id,
-        username: decoded.username || decoded.name || "User",
-        avatar: decoded.avatar || "/avatar.png",
+        username,
+        avatar: decoded.avatar || avatarFallback,
       });
 
       // ✅ SET COINS HERE (CORRECT PLACE)
@@ -851,15 +856,33 @@ export default function RoomPage() {
       console.log("📤 Joining room:", { roomId, userId: currentUser.id, pass: password });
 
       console.log("🎤 Requesting microphone...");
-      localStreamRef.current = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        },
-      });
-      console.log("✅ Microphone accessed");
-      setMicOn(true);
+
+      try {
+        if (
+          !navigator ||
+          !navigator.mediaDevices ||
+          typeof navigator.mediaDevices.getUserMedia !== "function"
+        ) {
+          throw new Error("getUserMedia not available");
+        }
+
+        localStreamRef.current = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        });
+
+        console.log("✅ Microphone accessed");
+        setMicOn(true);
+      } catch (mediaErr) {
+        console.warn("Microphone access failed:", mediaErr?.message || mediaErr);
+        const joinAsWatcher = window.confirm(
+          "Microphone is not available. Join as audience (no mic) instead?",
+        );
+        if (!joinAsWatcher) throw new Error("User declined to join without microphone");
+      }
 
       const joinRes = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL || "https://api.dilvoicechat.fun"}/api/rooms/${roomId}/join`,
@@ -911,9 +934,13 @@ export default function RoomPage() {
         });
         console.log("📤 Room join emitted");
 
-        // Automatically take a seat on join
-        socketRef.current.emit("room:takeSeat", { roomId });
-        console.log("📤 Auto-takeSeat emitted");
+        // Automatically take a seat on join only if we have a local stream
+        if (localStreamRef.current) {
+          socketRef.current.emit("room:takeSeat", { roomId });
+          console.log("📤 Auto-takeSeat emitted");
+        } else {
+          console.log("📤 Joined as watcher (no local stream), skipping auto-takeSeat");
+        }
 
         setJoined(true);
       });
