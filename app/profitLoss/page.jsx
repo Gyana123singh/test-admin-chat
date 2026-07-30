@@ -132,17 +132,17 @@ export default function ProfitLossManagement() {
   }
 
   return (
-    <div className="p-8 w-full bg-[#f8f9fc] overflow-y-auto h-screen min-h-screen">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
+    <div className="p-4 sm:p-6 md:p-8 w-full bg-[#f8f9fc] min-h-screen">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-3">
         <div>
-          <h1 className="text-3xl font-bold mb-1 text-gray-800">Luck Engine Configuration</h1>
-          <p className="text-gray-500">/ Profit & Loss Settings</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1 text-gray-800">Luck Engine Configuration</h1>
+          <p className="text-gray-500 text-xs sm:text-sm">/ Profit & Loss Settings</p>
         </div>
         
-        <div className="flex gap-3 mt-4 md:mt-0">
+        <div className="flex items-center gap-2.5 mt-2 md:mt-0">
           <button
             onClick={handleResetDefaults}
-            className="flex items-center gap-2 border border-gray-300 bg-white text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 duration-150 font-medium"
+            className="flex items-center justify-center gap-1.5 border border-gray-300 bg-white text-gray-700 px-3.5 py-2 rounded-xl hover:bg-gray-50 transition font-semibold text-xs sm:text-sm whitespace-nowrap cursor-pointer"
           >
             Reset Defaults
           </button>
@@ -150,14 +150,14 @@ export default function ProfitLossManagement() {
           <button
             onClick={handleSave}
             disabled={saving || !isChanceSumValid}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl text-white font-semibold shadow-sm duration-150 ${
+            className={`flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-white font-semibold text-xs sm:text-sm whitespace-nowrap transition shadow-sm cursor-pointer ${
               !isChanceSumValid
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-purple-600 hover:bg-purple-700"
             }`}
           >
-            <Save size={18} />
-            {saving ? "Saving..." : "Save Settings"}
+            <Save size={16} />
+            <span>{saving ? "Saving..." : "Save Settings"}</span>
           </button>
         </div>
       </div>

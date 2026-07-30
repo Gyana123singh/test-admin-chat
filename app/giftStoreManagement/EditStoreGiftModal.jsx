@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import instanceApi from "../utils/api/axiosConfig";
 import { X, RefreshCw } from "lucide-react";
 
-export default function EditGiftModal({ gift, close, onSuccess }) {
+export default function EditStoreGiftModal({ gift, close, onSuccess }) {
   const [name, setName] = useState(gift?.name || "");
   const [price, setPrice] = useState(gift?.price || "");
   const [category, setCategory] = useState(gift?.category || "");
@@ -17,12 +17,12 @@ export default function EditGiftModal({ gift, close, onSuccess }) {
 
   const fetchCategories = async () => {
     try {
-      const res = await instanceApi.get("/api/gift/getCategory");
+      const res = await instanceApi.get("/api/store-gifts/getStoreCategory");
       if (res.data?.success && Array.isArray(res.data.categories)) {
         setCategories(res.data.categories);
       }
     } catch (err) {
-      console.error("Fetch categories error:", err);
+      console.error("Fetch store categories error:", err);
     }
   };
 
@@ -54,7 +54,7 @@ export default function EditGiftModal({ gift, close, onSuccess }) {
       }
 
       const res = await instanceApi.put(
-        `/api/gift/update/${gift._id}`,
+        `/api/store-gifts/update/${gift._id}`,
         formData,
         {
           headers: {
@@ -64,15 +64,15 @@ export default function EditGiftModal({ gift, close, onSuccess }) {
       );
 
       if (res.data?.success) {
-        alert("Gift updated successfully ✅");
+        alert("Store Gift updated successfully ✅");
         onSuccess?.();
         close?.();
       } else {
-        setError(res.data?.message || "Failed to update gift");
+        setError(res.data?.message || "Failed to update store gift");
       }
     } catch (err) {
-      console.error("Update gift error:", err);
-      setError(err.response?.data?.message || "Server error updating gift");
+      console.error("Update store gift error:", err);
+      setError(err.response?.data?.message || "Server error updating store gift");
     } finally {
       setLoading(false);
     }
@@ -89,21 +89,25 @@ export default function EditGiftModal({ gift, close, onSuccess }) {
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="text-2xl font-bold mb-6 text-gray-900 pr-8">Edit Gift</h2>
+        <h2 className="text-2xl font-bold mb-6 text-gray-900 pr-8">Edit Store Gift</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Preview Image */}
+          {/* Preview Image / Video */}
           <div className="flex items-center gap-3">
             <div className="w-16 h-16 bg-purple-50 rounded-xl overflow-hidden border border-purple-100 flex items-center justify-center shrink-0">
               {iconPreview ? (
-                <img src={iconPreview} alt="preview" className="w-full h-full object-contain p-1" />
+                iconPreview.endsWith(".mp4") ? (
+                  <video src={iconPreview} muted loop autoPlay className="w-full h-full object-contain p-1" />
+                ) : (
+                  <img src={iconPreview} alt="preview" className="w-full h-full object-contain p-1" />
+                )
               ) : (
-                <span className="text-xs text-gray-400">No Image</span>
+                <span className="text-xs text-gray-400">No Media</span>
               )}
             </div>
 
             <div className="flex-1">
-              <label className="block text-xs font-semibold mb-1 text-gray-700">Change Gift Icon</label>
+              <label className="block text-xs font-semibold mb-1 text-gray-700">Change Media / Icon</label>
               <input
                 type="file"
                 accept="image/*,video/*"
@@ -122,7 +126,7 @@ export default function EditGiftModal({ gift, close, onSuccess }) {
           {/* Gift Name */}
           <div>
             <label className="block text-sm font-semibold mb-1 text-gray-700">
-              Gift Name *
+              Store Gift Name *
             </label>
             <input
               type="text"

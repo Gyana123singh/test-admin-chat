@@ -2,23 +2,33 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { Plus, Edit, Trash } from "lucide-react";
+import { Plus, Edit, Trash, ChevronLeft, ChevronRight } from "lucide-react";
 
 import AddStoreCategoryModal from "../giftStoreManagement/AddStoreCategory.jsx";
 import AddStoreGiftModal from "../giftStoreManagement/AddStoreGiftModal.jsx";
+import EditStoreGiftModal from "../giftStoreManagement/EditStoreGiftModal.jsx";
 
 const API_BASE = "https://api.dilvoicechat.fun/api/store-gifts";
 
 export default function GiftsPage() {
   const [openAdd, setOpenAdd] = useState(false);
   const [openAddCategory, setOpenAddCategory] = useState(false);
+  const [editingGift, setEditingGift] = useState(null);
 
   const [gifts, setGifts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedType, setSelectedType] = useState("ALL");
   const [loading, setLoading] = useState(false);
 
-  const [previewVideo, setPreviewVideo] = useState(null); // ✅ NEW
+  const [previewVideo, setPreviewVideo] = useState(null);
+
+  // 10 ITEMS PER PAGE PAGINATION
+  const ITEMS_PER_PAGE = 10;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.ceil(gifts.length / ITEMS_PER_PAGE) || 1;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedGifts = gifts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   /* ===============================
      FETCH CATEGORIES
@@ -71,6 +81,7 @@ export default function GiftsPage() {
 
   const handleTypeChange = (type) => {
     setSelectedType(type);
+    setCurrentPage(1);
     fetchGifts(type);
   };
 
@@ -93,49 +104,52 @@ export default function GiftsPage() {
   };
 
   return (
-    <div className="p-6 overflow-y-auto h-screen bg-[#f8f9fc]">
+    <div className="p-4 sm:p-6 md:p-8 min-h-screen bg-[#f8f9fc]">
       {/* HEADER */}
-      <div className="flex justify-between mb-6">
-        <h1 className="text-3xl font-bold">🎁 Gifts Management</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">🎁 Store Gifts Management</h1>
+          <p className="text-gray-500 text-xs sm:text-sm mt-1">Manage avatars, frames, rides and store gifts</p>
+        </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3">
           <button
             onClick={() => setOpenAddCategory(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
           >
-            <Plus size={18} /> Add Gift Category
+            <Plus size={18} /> Add Store Category
           </button>
 
           <button
             onClick={() => setOpenAdd(true)}
-            className="bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition cursor-pointer"
           >
-            <Plus size={18} /> Add Gift
+            <Plus size={18} /> Add Store Gift
           </button>
         </div>
       </div>
 
       {/* CATEGORY FILTER */}
-      <div className="flex gap-3 mb-6 flex-wrap">
+      <div className="flex gap-2.5 mb-6 flex-wrap">
         <button
           onClick={() => handleTypeChange("ALL")}
-          className={`px-4 py-1 rounded-full text-sm font-semibold ${
+          className={`px-4 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
             selectedType === "ALL"
-              ? "bg-purple-600 text-white"
-              : "bg-white border"
+              ? "bg-purple-600 text-white shadow-xs"
+              : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
           }`}
         >
-          ALL
+          ALL ({gifts.length})
         </button>
 
         {categories.map((type) => (
           <button
             key={type}
             onClick={() => handleTypeChange(type)}
-            className={`px-4 py-1 rounded-full text-sm font-semibold ${
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition cursor-pointer ${
               selectedType === type
-                ? "bg-purple-600 text-white"
-                : "bg-white border"
+                ? "bg-purple-600 text-white shadow-xs"
+                : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
             }`}
           >
             {type}
@@ -143,62 +157,126 @@ export default function GiftsPage() {
         ))}
       </div>
 
-      {loading && <p>Loading gifts...</p>}
+      {loading && <p className="text-gray-500 text-sm font-medium py-8">Loading gifts...</p>}
 
       {/* GIFTS GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-5">
-        {!loading && gifts.length === 0 && <p>No gifts found.</p>}
+      {!loading && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {gifts.length === 0 && (
+            <p className="text-gray-400 text-sm col-span-full py-8 text-center">No store gifts found.</p>
+          )}
 
-        {gifts.map((gift) => (
-          <div key={gift._id} className="bg-white rounded-xl shadow p-3">
-            {/* 🔥 Media Logic */}
-            {isVideo(gift.icon) ? (
-              <video
-                src={gift.icon}
-                muted
-                loop
-                className="w-full h-28 object-contain mb-2 cursor-pointer"
-                onClick={() => setPreviewVideo(gift.icon)}
-              />
-            ) : (
-              <img
-                src={gift.icon || "/placeholder.png"}
-                alt={gift.name}
-                className="w-full h-28 object-contain mb-2 cursor-pointer"
-              />
-            )}
+          {paginatedGifts.map((gift) => (
+            <div key={gift._id} className="bg-white rounded-2xl border border-gray-200 shadow-xs p-3.5 flex flex-col justify-between hover:shadow-md transition">
+              {/* Media Logic */}
+              {isVideo(gift.icon) ? (
+                <video
+                  src={gift.icon}
+                  muted
+                  loop
+                  className="w-full h-24 object-contain mb-2 rounded-lg bg-purple-50/40 p-1 cursor-pointer"
+                  onClick={() => setPreviewVideo(gift.icon)}
+                />
+              ) : (
+                <img
+                  src={gift.icon || "/placeholder.png"}
+                  alt={gift.name}
+                  className="w-full h-24 object-contain mb-2 rounded-lg bg-purple-50/40 p-1 cursor-pointer"
+                  onError={(e) => {
+                    e.target.src = "/placeholder.png";
+                  }}
+                />
+              )}
 
-            <h3 className="text-sm font-semibold">{gift.name}</h3>
-            <p className="text-xs text-gray-600">{gift.category}</p>
-            <p className="text-xs font-semibold text-purple-600">
-              {gift.price} coins
-            </p>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 truncate">{gift.name}</h3>
+                <p className="text-xs text-gray-500 capitalize">{gift.category}</p>
+                <p className="text-xs font-extrabold text-purple-700 mt-1">
+                  {gift.price} coins
+                </p>
+              </div>
 
-            <div className="flex justify-between mt-3">
-              <Edit size={18} className="text-blue-500 cursor-pointer" />
-              <Trash
-                size={18}
-                className="text-red-500 cursor-pointer"
-                onClick={() => handleDelete(gift._id)}
-              />
+              <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingGift(gift)}
+                  title="Edit Store Gift"
+                  className="p-1 rounded-lg hover:bg-blue-50 text-blue-500 hover:text-blue-700 transition cursor-pointer"
+                >
+                  <Edit size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(gift._id)}
+                  title="Delete Store Gift"
+                  className="p-1 rounded-lg hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition cursor-pointer"
+                >
+                  <Trash size={16} />
+                </button>
+              </div>
             </div>
+          ))}
+        </div>
+      )}
+
+      {/* 10 ITEMS PAGINATION CONTROLS */}
+      {!loading && gifts.length > 0 && (
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-gray-200 shadow-xs">
+          <div className="text-xs text-gray-500 font-medium">
+            Showing <span className="font-bold text-gray-900">{startIndex + 1}</span> to{" "}
+            <span className="font-bold text-gray-900">{Math.min(startIndex + ITEMS_PER_PAGE, gifts.length)}</span> of{" "}
+            <span className="font-bold text-gray-900">{gifts.length}</span> store gifts (Page {currentPage} of {totalPages})
           </div>
-        ))}
-      </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              className="px-3 py-1.5 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
+            >
+              <ChevronLeft size={14} />
+              <span>Previous</span>
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`w-8 h-8 rounded-xl text-xs font-bold transition cursor-pointer ${
+                  currentPage === page
+                    ? "bg-purple-600 text-white shadow-xs"
+                    : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+
+            <button
+              disabled={currentPage === totalPages || totalPages === 0}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              className="px-3 py-1.5 rounded-xl border border-gray-300 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer flex items-center gap-1"
+            >
+              <span>Next</span>
+              <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 🎥 VIDEO MODAL */}
       {previewVideo && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-white p-4 rounded-xl">
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white p-4 rounded-2xl max-w-lg w-full">
             <video
               src={previewVideo}
               controls
               autoPlay
-              className="max-h-[70vh]"
+              className="max-h-[70vh] w-full rounded-xl"
             />
             <button
               onClick={() => setPreviewVideo(null)}
-              className="mt-3 bg-red-500 text-white px-4 py-1 rounded"
+              className="mt-3 w-full bg-rose-600 text-white font-semibold py-2 rounded-xl text-sm hover:bg-rose-700 transition cursor-pointer"
             >
               Close
             </button>
@@ -210,12 +288,20 @@ export default function GiftsPage() {
       {openAdd && (
         <AddStoreGiftModal
           close={() => setOpenAdd(false)}
-          onSuccess={fetchGifts}
+          onSuccess={() => fetchGifts(selectedType)}
         />
       )}
 
       {openAddCategory && (
         <AddStoreCategoryModal close={() => setOpenAddCategory(false)} />
+      )}
+
+      {editingGift && (
+        <EditStoreGiftModal
+          gift={editingGift}
+          close={() => setEditingGift(null)}
+          onSuccess={() => fetchGifts(selectedType)}
+        />
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 import axios from "axios";
 import { useState } from "react";
+import { X } from "lucide-react";
 
 const CATEGORY_TYPES = ["HOT", "LUCKY", "SIV", "CUSTOMIZED", "BAG", "NONE"];
 
@@ -52,9 +53,18 @@ export default function AddCategoryModal({ close, onCategoryAdded }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-xl shadow-md w-[450px]">
-        <h2 className="text-xl font-bold mb-4">Add Store Category</h2>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+      <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md relative">
+        <button
+          type="button"
+          onClick={close}
+          className="absolute top-5 right-5 text-gray-400 hover:text-gray-700 p-1.5 rounded-xl hover:bg-gray-100 transition cursor-pointer"
+          aria-label="Close modal"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        <h2 className="text-xl font-bold mb-4 text-gray-900 pr-8">Add Store Category</h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* CATEGORY TYPE */}

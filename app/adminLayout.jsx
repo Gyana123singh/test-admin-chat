@@ -9,9 +9,9 @@ const Sidebar = dynamic(() => import("./components/Sidebar/Sidebar"), {
 
 const AdminLayout = ({ children }) => {
   return (
-    <div className="flex w-full">
+    <div className="flex flex-col lg:flex-row w-full min-h-screen bg-gray-50">
       <Sidebar />
-      <main className="flex-1 bg-gray-50 min-h-screen">{children}</main>
+      <main className="flex-1 bg-gray-50 min-h-screen overflow-x-hidden w-full">{children}</main>
     </div>
   );
 };

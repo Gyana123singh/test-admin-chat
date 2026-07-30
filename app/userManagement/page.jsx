@@ -164,7 +164,7 @@ export default function UserManagement() {
   };
 
   return (
-    <div className="p-6 md:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 md:p-8 bg-gray-50 min-h-screen">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -203,7 +203,7 @@ export default function UserManagement() {
         <button
           onClick={() => fetchUsers(true)}
           disabled={refreshing}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition shadow-sm font-medium text-sm disabled:opacity-50"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition shadow-sm font-medium text-sm disabled:opacity-50 cursor-pointer"
         >
           <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-blue-600" : ""}`} />
           <span>{refreshing ? "Refreshing..." : "Refresh List"}</span>
@@ -287,7 +287,7 @@ export default function UserManagement() {
           <div className="flex bg-gray-100 p-1 rounded-lg">
             <button
               onClick={() => setActiveTab("all")}
-              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition ${
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${
                 activeTab === "all"
                   ? "bg-white text-gray-900 shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
@@ -297,7 +297,7 @@ export default function UserManagement() {
             </button>
             <button
               onClick={() => setActiveTab("active")}
-              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition ${
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${
                 activeTab === "active"
                   ? "bg-white text-emerald-700 shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
@@ -307,7 +307,7 @@ export default function UserManagement() {
             </button>
             <button
               onClick={() => setActiveTab("banned")}
-              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition ${
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition cursor-pointer ${
                 activeTab === "banned"
                   ? "bg-white text-rose-700 shadow-xs"
                   : "text-gray-600 hover:text-gray-900"
@@ -330,7 +330,7 @@ export default function UserManagement() {
             <input
               type="text"
               placeholder="Search by name, email, phone, ID..."
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -338,7 +338,7 @@ export default function UserManagement() {
 
           {/* Country Dropdown */}
           <select
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium bg-white"
             value={filterCountry}
             onChange={(e) => setFilterCountry(e.target.value)}
           >
@@ -350,7 +350,7 @@ export default function UserManagement() {
 
           {/* Gender Dropdown */}
           <select
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium bg-white"
             value={filterGender}
             onChange={(e) => setFilterGender(e.target.value)}
           >
@@ -362,7 +362,7 @@ export default function UserManagement() {
 
           {/* Role Dropdown */}
           <select
-            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 font-medium bg-white"
             value={filterRole}
             onChange={(e) => setFilterRole(e.target.value)}
           >
@@ -484,40 +484,39 @@ export default function UserManagement() {
                       </td>
 
                       {/* BAN STATUS BADGE */}
-                      <td className="py-3.5 px-4">
+                      <td className="py-3 px-3">
                         {isBanned ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-700 border border-rose-200">
-                            <ShieldAlert className="w-3.5 h-3.5" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-100 text-rose-700 border border-rose-200 whitespace-nowrap">
+                            <ShieldAlert className="w-3 h-3" />
                             Banned
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                            <ShieldCheck className="w-3.5 h-3.5" />
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200 whitespace-nowrap">
+                            <ShieldCheck className="w-3 h-3" />
                             Active / Unbanned
                           </span>
                         )}
                       </td>
 
                       {/* ACTIONS */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
+                      <td className="py-3 px-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5 whitespace-nowrap">
                           {/* BAN / UNBAN BUTTON */}
                           <button
                             disabled={isSuperAdmin || actionLoadingId === u._id}
                             onClick={() => handleToggleBan(u)}
-                            className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition shadow-xs disabled:opacity-50 disabled:cursor-not-allowed ${
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-white transition shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap ${
                               isBanned
                                 ? "bg-emerald-600 hover:bg-emerald-700"
                                 : "bg-rose-600 hover:bg-rose-700"
                             }`}
-
                           >
                             {actionLoadingId === u._id ? (
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <RefreshCw className="w-3 h-3 animate-spin" />
                             ) : isBanned ? (
-                              <UserCheck className="w-3.5 h-3.5" />
+                              <UserCheck className="w-3 h-3" />
                             ) : (
-                              <UserX className="w-3.5 h-3.5" />
+                              <UserX className="w-3 h-3" />
                             )}
                             <span>{isBanned ? "Unban User" : "Ban User"}</span>
                           </button>
@@ -525,9 +524,9 @@ export default function UserManagement() {
                           {/* VIEW DETAILS */}
                           <button
                             onClick={() => setSelectedUser(u)}
-                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold transition"
+                            className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-semibold transition cursor-pointer whitespace-nowrap"
                           >
-                            <Eye className="w-3.5 h-3.5" />
+                            <Eye className="w-3 h-3" />
                             <span>View</span>
                           </button>
                         </div>
@@ -551,7 +550,7 @@ export default function UserManagement() {
                 <h2 className="text-lg font-bold text-gray-900">User Profile Details</h2>
                 <button
                   onClick={() => setSelectedUser(null)}
-                  className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 transition"
+                  className="p-1 rounded-lg hover:bg-gray-100 text-gray-500 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -657,7 +656,7 @@ export default function UserManagement() {
               <button
                 disabled={selectedUser.role === "superadmin" || actionLoadingId === selectedUser._id}
                 onClick={() => handleToggleBan(selectedUser)}
-                className={`w-full py-2.5 rounded-lg text-sm font-semibold text-white transition flex items-center justify-center gap-2 disabled:opacity-50 ${
+                className={`w-full py-2.5 rounded-lg text-sm font-semibold text-white transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 ${
                   selectedUser.isBanned
                     ? "bg-emerald-600 hover:bg-emerald-700"
                     : "bg-rose-600 hover:bg-rose-700"
