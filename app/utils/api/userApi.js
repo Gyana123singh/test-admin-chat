@@ -9,4 +9,12 @@ export const userApi = {
       throw error;
     }
   },
+  toggleUserBan: async (userId, isBanned) => {
+    try {
+      const response = await instanceApi.post("/api/toggle-user-ban", { userId, isBanned });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
