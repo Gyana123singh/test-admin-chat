@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 export default function AddStoreGiftModal({ close, onSuccess }) {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [validityDays, setValidityDays] = useState(7);
   const [category, setCategory] = useState("");
   const [categories, setCategories] = useState([]);
   const [file, setFile] = useState(null);
@@ -56,6 +57,7 @@ export default function AddStoreGiftModal({ close, onSuccess }) {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("price", price);
+      formData.append("validityDays", validityDays || 7);
       formData.append("category", category); // ✅ string
       if (file) {
         formData.append("icon", file);
@@ -128,7 +130,7 @@ export default function AddStoreGiftModal({ close, onSuccess }) {
             />
           </div>
 
-          {/* CATEGORY SELECT (FIXED) */}
+          {/* CATEGORY SELECT */}
           <div>
             <label className="block text-sm font-medium mb-1 text-gray-700">Category</label>
             <select
@@ -145,6 +147,38 @@ export default function AddStoreGiftModal({ close, onSuccess }) {
               ))}
             </select>
           </div>
+
+          {/* Validity Days (Shown for all categories except RING) */}
+          {category?.toUpperCase() !== "RING" && (
+            <div>
+              <label className="block text-sm font-medium mb-1 text-gray-700">Validity (Days)</label>
+              <input
+                type="number"
+                placeholder="Enter days (e.g. 3, 7, 20)"
+                value={validityDays}
+                onChange={(e) => setValidityDays(e.target.value)}
+                min="1"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              />
+              {/* Quick preset buttons */}
+              <div className="flex gap-2 mt-2">
+                {[3, 7, 20, 30].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setValidityDays(d)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg border transition cursor-pointer ${
+                      Number(validityDays) === d
+                        ? "bg-purple-600 text-white border-purple-600"
+                        : "bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100"
+                    }`}
+                  >
+                    {d} Days
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* File Upload */}
           <div>

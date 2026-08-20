@@ -7,6 +7,7 @@ import { X, RefreshCw } from "lucide-react";
 export default function EditStoreGiftModal({ gift, close, onSuccess }) {
   const [name, setName] = useState(gift?.name || "");
   const [price, setPrice] = useState(gift?.price || "");
+  const [validityDays, setValidityDays] = useState(gift?.validityDays || gift?.days || 7);
   const [category, setCategory] = useState(gift?.category || "");
   const [categories, setCategories] = useState([]);
   const [icon, setIcon] = useState(null);
@@ -45,6 +46,7 @@ export default function EditStoreGiftModal({ gift, close, onSuccess }) {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("price", price);
+      formData.append("validityDays", validityDays || 7);
       formData.append("category", category);
 
       if (icon) {
@@ -169,6 +171,39 @@ export default function EditStoreGiftModal({ gift, close, onSuccess }) {
               ))}
             </select>
           </div>
+
+          {/* Validity Days (Shown for all categories except RING) */}
+          {category?.toUpperCase() !== "RING" && (
+            <div>
+              <label className="block text-sm font-semibold mb-1 text-gray-700">
+                Validity (Days) *
+              </label>
+              <input
+                type="number"
+                value={validityDays}
+                onChange={(e) => setValidityDays(e.target.value)}
+                min="1"
+                className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                placeholder="Enter validity in days (e.g. 3, 7, 20)"
+              />
+              <div className="flex gap-2 mt-2">
+                {[3, 7, 20, 30].map((d) => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setValidityDays(d)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg border transition cursor-pointer ${
+                      Number(validityDays) === d
+                        ? "bg-purple-600 text-white border-purple-600"
+                        : "bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100"
+                    }`}
+                  >
+                    {d} Days
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {error && <p className="text-rose-500 text-xs font-semibold">{error}</p>}
 

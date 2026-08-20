@@ -191,6 +191,11 @@ export default function GiftsPage() {
               <div>
                 <h3 className="text-sm font-bold text-gray-900 truncate">{gift.name}</h3>
                 <p className="text-xs text-gray-500 capitalize">{gift.category}</p>
+                {gift.category?.toUpperCase() !== "RING" && gift.effectType?.toUpperCase() !== "RING" && (
+                  <p className="text-xs font-semibold text-gray-400 mt-0.5">
+                    {gift.validityDays || gift.days || 7} Days
+                  </p>
+                )}
                 <p className="text-xs font-extrabold text-purple-700 mt-1">
                   {gift.price} coins
                 </p>
